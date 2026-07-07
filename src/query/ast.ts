@@ -15,8 +15,8 @@ export type SqlValue = string | number | bigint | boolean | null | Uint8Array | 
 /**
  * A single field lookup, e.g. `name__icontains: "smith"` parses to
  * `{ kind: "lookup", path: ["name"], lookup: "icontains", value: "smith" }`.
- * `path` has length > 1 only for relation spanning (`author__name`), which the
- * Phase 1 compiler does not yet resolve.
+ * `path` has length > 1 for relation spanning (`author__name`), which the
+ * compiler resolves by planning the necessary JOINs.
  */
 export interface LookupNode {
   kind: "lookup";

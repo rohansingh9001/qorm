@@ -1,0 +1,17 @@
+# The `files` allowlist in package.json is the source of truth for what ships.
+# This file exists so npm does NOT fall back to .gitignore (which excludes
+# dist/) when building the publish tarball — the compiled dist/ must be shipped.
+#
+# Dev-only artifacts, excluded from the published package:
+src/
+test/
+design_doc.md
+tsconfig.json
+tsconfig.build.json
+.prettierrc
+.prettierignore
+.github/
+*.sqlite
+*.sqlite3
+*.log
+*.tsbuildinfo

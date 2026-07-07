@@ -6,13 +6,27 @@ related managers, auto-generated migrations, and a `manage.py`-style CLI. See
 
 **Three backends:** SQLite (zero-dependency, via Node's built-in `node:sqlite`),
 **PostgreSQL** (`pg`), and **MySQL** (`mysql2`) — the server drivers are optional
-peer dependencies, loaded only when their engine is configured. Native TypeScript
-execution, no build step. Requires **Node.js ≥ 22**.
+peer dependencies, loaded only when their engine is configured. Ships as compiled
+JavaScript with TypeScript declarations. Requires **Node.js ≥ 22** (the SQLite
+backend uses the built-in `node:sqlite`).
+
+## Installation
 
 ```bash
+npm install dormjs
+# Optional server drivers — only for the backend you use:
+npm install pg        # PostgreSQL
+npm install mysql2    # MySQL 8
+```
+
+## Development
+
+```bash
+npm ci              # install dev dependencies
 npm test            # 140 tests: full stack on SQLite + conformance on PG/MySQL
-npx tsc --noEmit    # strict type-check (after npm install for the dev deps)
-node bin/dorm.js    # the CLI
+npm run typecheck   # strict type-check (tsc --noEmit)
+npm run build       # compile src/ -> dist/ (.js + .d.ts)
+node bin/dorm.js    # the CLI (after npm run build)
 ```
 
 The Postgres/MySQL conformance suites run against real servers and skip cleanly
@@ -29,7 +43,7 @@ npm test
 ## Quick start
 
 ```ts
-import { defineModel, fields, Q, F, Count, connect, getConnection } from "dorm";
+import { defineModel, fields, Q, F, Count, connect, getConnection } from "dormjs";
 
 const Author = defineModel(
   "Author",
@@ -116,7 +130,7 @@ dorm inspectdb                 # generate model code from an existing database
 Configuration lives in `dorm.config.ts` (or `.js`/`.mjs`):
 
 ```ts
-import { defineConfig } from "dorm";
+import { defineConfig } from "dormjs";
 
 export default defineConfig({
   databases: {

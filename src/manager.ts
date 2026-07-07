@@ -4,7 +4,8 @@
  * A manager is a thin facade over a fresh `QuerySet`: most methods just delegate
  * so `Author.objects.filter(...)` reads like `Author.objects.all().filter(...)`.
  * It owns the row-producing helpers that aren't queryset transforms — `create`,
- * `getOrCreate` — and is the seam where `RelatedManager` (Phase 2) will hook in.
+ * `getOrCreate` — and is the seam where `RelatedManager`/`ManyRelatedManager`
+ * hook in for reverse and M2M relations.
  */
 import { QuerySet } from "./queryset.ts";
 import type { ModelClass, ModelInstance } from "./types.ts";

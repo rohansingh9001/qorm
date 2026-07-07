@@ -6,8 +6,9 @@
  * NOT hold a value — instance values live on the instance (see `model.ts`). This
  * is the static-declaration / instance-value split called out in design 4.2.
  *
- * Mirrors `django.db.models.*Field`. Phase 1 implements scalar fields plus
- * `ForeignKey`/`OneToOneField`; `ManyToManyField` is a Phase 2 stub.
+ * Mirrors `django.db.models.*Field`: scalar fields, `ForeignKey`/`OneToOneField`,
+ * and `ManyToManyField` (auto through-table; custom `through` models are not yet
+ * supported).
  */
 import type { SqlValue } from "./query/ast.ts";
 import type { ModelClass } from "./types.ts";
@@ -154,7 +155,7 @@ export abstract class Field {
     return { type: this.fieldType, options };
   }
 
-  /** Throw on invalid value. Phase 1 runs choices + null + per-type checks. */
+  /** Throw on invalid value. Runs choices + null + per-type checks. */
   validate(value: unknown): void {
     if (value === null || value === undefined) {
       if (!this.nullable && !this.primaryKey && this.options.blank !== true && !this.hasDefault()) {

@@ -13,7 +13,7 @@
  */
 import type { Condition, LookupNode } from "./ast.ts";
 
-/** Lookups supported in Phase 1. */
+/** The supported field lookups. */
 export const KNOWN_LOOKUPS = new Set([
   "exact",
   "iexact",

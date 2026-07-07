@@ -3,8 +3,9 @@
  *
  * Mirrors Django's `DATABASES` setting (design 9): a map of named aliases, each
  * describing one database. Models resolve their backend by alias ("default"
- * unless `Meta.using` says otherwise). Phase 1 ships the SQLite backend; the
- * Postgres/MySQL engines are recognized but throw until implemented.
+ * unless `Meta.using` says otherwise). All three engines are supported: SQLite
+ * (built-in `node:sqlite`), Postgres (`pg`), and MySQL (`mysql2`); the server
+ * drivers are optional peer deps, imported lazily only when their engine is used.
  */
 import type { Backend } from "./backends/base.ts";
 import { SqliteBackend } from "./backends/sqlite.ts";
@@ -68,7 +69,7 @@ export async function createBackend(cfg: DatabaseConfig): Promise<Backend> {
     case "sqlite":
       return new SqliteBackend(cfg.name || ":memory:");
     case "postgres": {
-      const mod = await importBackend("./backends/postgres.ts", "postgres", "pg");
+      const mod = await importBackend(() => import("./backends/postgres.ts"), "postgres", "pg");
       return new (mod as typeof import("./backends/postgres.ts")).PostgresBackend({
         host: cfg.host,
         port: cfg.port,
@@ -78,7 +79,7 @@ export async function createBackend(cfg: DatabaseConfig): Promise<Backend> {
       });
     }
     case "mysql": {
-      const mod = await importBackend("./backends/mysql.ts", "mysql", "mysql2");
+      const mod = await importBackend(() => import("./backends/mysql.ts"), "mysql", "mysql2");
       return new (mod as typeof import("./backends/mysql.ts")).MysqlBackend({
         host: cfg.host,
         port: cfg.port,
@@ -92,9 +93,13 @@ export async function createBackend(cfg: DatabaseConfig): Promise<Backend> {
   }
 }
 
-async function importBackend(path: string, engine: string, driver: string): Promise<unknown> {
+async function importBackend(
+  load: () => Promise<unknown>,
+  engine: string,
+  driver: string,
+): Promise<unknown> {
   try {
-    return await import(path);
+    return await load();
   } catch (e) {
     if ((e as { code?: string }).code === "ERR_MODULE_NOT_FOUND") {
       throw new NotSupportedError(
