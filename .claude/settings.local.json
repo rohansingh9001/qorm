@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(node -e \"try{require\\('node:sqlite'\\);console.log\\('node:sqlite AVAILABLE'\\)}catch\\(e\\){console.log\\('node:sqlite NOT available:',e.code||e.message\\)}\")",
+      "Bash(timeout 8 npm ping)",
+      "Bash(node /tmp/t.ts)",
+      "Bash(node /tmp/b.ts)",
+      "Bash(git init *)",
+      "Bash(node --test --disable-warning=ExperimentalWarning test/)",
+      "Bash(node --test --disable-warning=ExperimentalWarning test/*.test.ts)",
+      "Bash(npm test *)"
+    ]
+  }
+}

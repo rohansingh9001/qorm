@@ -1,0 +1,48 @@
+{
+  "name": "dorm",
+  "version": "0.0.1",
+  "description": "A Django-style ORM for Node.js — declarative models, a lazy chainable QuerySet, and a manage-style CLI.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "dorm": "./bin/dorm.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test --disable-warning=ExperimentalWarning 'test/**/*.test.ts'",
+    "test:watch": "node --test --watch --disable-warning=ExperimentalWarning 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "orm",
+    "django",
+    "queryset",
+    "migrations",
+    "sqlite",
+    "postgres"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "mysql2": ">=3",
+    "pg": ">=8"
+  },
+  "peerDependenciesMeta": {
+    "mysql2": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.20.0",
+    "mysql2": "^3.22.5",
+    "pg": "^8.21.0",
+    "typescript": "^5.5.0"
+  }
+}
