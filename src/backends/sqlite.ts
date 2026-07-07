@@ -109,9 +109,13 @@ class SqliteSchemaEditor implements SchemaEditor {
     }
     this.ddl(`ALTER TABLE ${q(meta.dbTable)} ADD COLUMN ${def}`);
     if (field.unique) {
-      this.ddl(`CREATE UNIQUE INDEX ${q(`idx_${meta.dbTable}_${field.column}_uniq`)} ON ${q(meta.dbTable)} (${q(field.column)})`);
+      this.ddl(
+        `CREATE UNIQUE INDEX ${q(`idx_${meta.dbTable}_${field.column}_uniq`)} ON ${q(meta.dbTable)} (${q(field.column)})`,
+      );
     } else if (field.dbIndex) {
-      this.ddl(`CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`);
+      this.ddl(
+        `CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`,
+      );
     }
   }
 
@@ -163,7 +167,11 @@ class SqliteSchemaEditor implements SchemaEditor {
     );
   }
 
-  async dropManyToMany(_meta: ModelMeta, field: Field, opts: { ifExists?: boolean } = {}): Promise<void> {
+  async dropManyToMany(
+    _meta: ModelMeta,
+    field: Field,
+    opts: { ifExists?: boolean } = {},
+  ): Promise<void> {
     const m2m = field as ManyToManyField;
     const q = (s: string) => this.backend.quoteName(s);
     this.ddl(`DROP TABLE ${opts.ifExists ? "IF EXISTS " : ""}${q(m2m.throughTable())}`);
@@ -174,7 +182,10 @@ class SqliteSchemaEditor implements SchemaEditor {
    * columns → DROP old → RENAME new into place → recreate indexes. The executor
    * turns foreign_keys OFF around migrations so the swap is safe.
    */
-  private async rebuildTable(newMeta: ModelMeta, opts: { excludeColumns?: string[] }): Promise<void> {
+  private async rebuildTable(
+    newMeta: ModelMeta,
+    opts: { excludeColumns?: string[] },
+  ): Promise<void> {
     const q = (s: string) => this.backend.quoteName(s);
     const table = newMeta.dbTable;
     const tmp = `${table}__dorm_new`;
@@ -264,7 +275,11 @@ export class SqliteBackend implements Backend {
 
   /* ----- dialect surface --------------------------------------------------- */
 
-  async runInsert(sql: string, params: SqlValue[], _pkColumn: string): Promise<{ insertedPk: unknown; changes: number }> {
+  async runInsert(
+    sql: string,
+    params: SqlValue[],
+    _pkColumn: string,
+  ): Promise<{ insertedPk: unknown; changes: number }> {
     const r = await this.run(sql, params);
     return { insertedPk: Number(r.lastInsertRowid), changes: r.changes };
   }
@@ -280,7 +295,9 @@ export class SqliteBackend implements Backend {
     return "datetime('now')";
   }
   sqlRegex(column: string, placeholder: string, caseInsensitive: boolean): string {
-    return caseInsensitive ? `iregexp(${placeholder}, ${column})` : `${column} REGEXP ${placeholder}`;
+    return caseInsensitive
+      ? `iregexp(${placeholder}, ${column})`
+      : `${column} REGEXP ${placeholder}`;
   }
   sqlDateOnly(column: string, placeholder: string): string {
     return `date(${column}) = ${placeholder}`;
@@ -363,14 +380,16 @@ export class SqliteBackend implements Backend {
   }
 
   private registerRegexp(): void {
-    const matcher = (flags: string) => (pattern: unknown, value: unknown): number => {
-      if (value === null || value === undefined) return 0;
-      try {
-        return new RegExp(String(pattern), flags).test(String(value)) ? 1 : 0;
-      } catch {
-        return 0;
-      }
-    };
+    const matcher =
+      (flags: string) =>
+      (pattern: unknown, value: unknown): number => {
+        if (value === null || value === undefined) return 0;
+        try {
+          return new RegExp(String(pattern), flags).test(String(value)) ? 1 : 0;
+        } catch {
+          return 0;
+        }
+      };
     // SQLite maps `value REGEXP pattern` to the call `regexp(pattern, value)`.
     this.db.function("regexp", matcher(""));
     // `iregexp(pattern, value)` is our own helper for the case-insensitive `iregex` lookup.

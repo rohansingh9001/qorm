@@ -5,7 +5,15 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { defineModel, fields, Count, connect, closeAll, getConnection, signals } from "../src/index.ts";
+import {
+  defineModel,
+  fields,
+  Count,
+  connect,
+  closeAll,
+  getConnection,
+  signals,
+} from "../src/index.ts";
 
 const Tag = defineModel("Tag", {
   label: fields.CharField({ maxLength: 50, unique: true }),
@@ -32,7 +40,9 @@ after(async () => {
 describe("through-table & basic ops", () => {
   test("through table exists with expected columns", async () => {
     const db = getConnection();
-    const rows = await db.execute(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'post_tags'`);
+    const rows = await db.execute(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'post_tags'`,
+    );
     assert.equal(rows.length, 1);
     const cols = await db.execute(`PRAGMA table_info("post_tags")`);
     const names = cols.map((c) => c.name);
@@ -102,12 +112,18 @@ describe("reverse accessor & spanning", () => {
 
   test("forward spanning: posts by tag label", async () => {
     const posts = await Post.objects.filter({ tags__label: "tech" });
-    assert.deepEqual(posts.map((p) => p.title), ["About AI"]);
+    assert.deepEqual(
+      posts.map((p) => p.title),
+      ["About AI"],
+    );
   });
 
   test("reverse spanning: tags by post title", async () => {
     const tags = await Tag.objects.filter({ posts__title__icontains: "digest" });
-    assert.deepEqual(tags.map((t) => t.label), ["news"]);
+    assert.deepEqual(
+      tags.map((t) => t.label),
+      ["news"],
+    );
   });
 
   test("annotate Count over m2m in both directions", async () => {
@@ -171,14 +187,23 @@ describe("self-referential m2m", () => {
     await db.schema.createTable(Person.meta);
 
     const cols = await db.execute(`PRAGMA table_info("person_friends")`);
-    assert.deepEqual(cols.map((c) => c.name), ["id", "fromPersonId", "toPersonId"]);
+    assert.deepEqual(
+      cols.map((c) => c.name),
+      ["id", "fromPersonId", "toPersonId"],
+    );
 
     const ada = await Person.objects.create({ name: "Ada" });
     const bob = await Person.objects.create({ name: "Bob" });
     await anyOf(ada).friends.add(bob);
-    assert.deepEqual((await anyOf(ada).friends.all()).map((p: any) => p.name), ["Bob"]);
+    assert.deepEqual(
+      (await anyOf(ada).friends.all()).map((p: any) => p.name),
+      ["Bob"],
+    );
     // Directional, like Django: Bob hasn't added Ada.
     assert.equal(await anyOf(bob).friends.count(), 0);
-    assert.deepEqual((await anyOf(bob).friendOf.all()).map((p: any) => p.name), ["Ada"]);
+    assert.deepEqual(
+      (await anyOf(bob).friendOf.all()).map((p: any) => p.name),
+      ["Ada"],
+    );
   });
 });

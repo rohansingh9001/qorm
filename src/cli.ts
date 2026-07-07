@@ -27,7 +27,12 @@ import { getConnection } from "./connection.ts";
 import { allModels } from "./registry.ts";
 import { ProjectState, StateApps } from "./migrations/state.ts";
 import { autodetectChanges, noAsker, type Asker } from "./migrations/autodetector.ts";
-import { writeMigration, writeSquashedMigration, renderMigration, nextMigrationName } from "./migrations/writer.ts";
+import {
+  writeMigration,
+  writeSquashedMigration,
+  renderMigration,
+  nextMigrationName,
+} from "./migrations/writer.ts";
 import { loadMigrations, finalState, resolveSquashes } from "./migrations/loader.ts";
 import { MigrationExecutor } from "./migrations/executor.ts";
 import { MigrationRecorder, MIGRATIONS_TABLE } from "./migrations/recorder.ts";
@@ -102,7 +107,10 @@ function globToRegex(pattern: string): RegExp {
   const GLOBSTAR_SLASH = "";
   const GLOBSTAR = "";
   const STAR = "";
-  const tokenized = normalized.replaceAll("**/", GLOBSTAR_SLASH).replaceAll("**", GLOBSTAR).replaceAll("*", STAR);
+  const tokenized = normalized
+    .replaceAll("**/", GLOBSTAR_SLASH)
+    .replaceAll("**", GLOBSTAR)
+    .replaceAll("*", STAR);
   const escaped = tokenized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const body = escaped
     .replaceAll(GLOBSTAR_SLASH, "(?:.*/)?") // zero or more whole directories
@@ -173,7 +181,9 @@ async function cmdMakemigrations(args: Args, config: DormConfig, configDir: stri
   const toState = ProjectState.fromModels(allModels());
 
   if (args.flags.get("empty")) {
-    const { path, name } = writeMigration(dir, [], { name: (args.flags.get("name") as string) ?? "custom" });
+    const { path, name } = writeMigration(dir, [], {
+      name: (args.flags.get("name") as string) ?? "custom",
+    });
     console.log(`Created empty migration ${name} at ${path}`);
     return;
   }
@@ -195,7 +205,9 @@ async function cmdMakemigrations(args: Args, config: DormConfig, configDir: stri
     console.log("\n" + renderMigration(changes, []));
     return;
   }
-  const { path, name } = writeMigration(dir, changes, { name: args.flags.get("name") as string | undefined });
+  const { path, name } = writeMigration(dir, changes, {
+    name: args.flags.get("name") as string | undefined,
+  });
   console.log(`Migrations for 'main':\n  ${path}`);
   for (const op of changes) console.log(`    - ${op.describe()}`);
   void name;
@@ -223,7 +235,8 @@ async function cmdMigrate(args: Args, config: DormConfig, configDir: string): Pr
     console.log("No migrations to apply.");
     return;
   }
-  for (const name of result.unapplied) console.log(`  Unapplying ${name}...${fake ? " FAKED" : " OK"}`);
+  for (const name of result.unapplied)
+    console.log(`  Unapplying ${name}...${fake ? " FAKED" : " OK"}`);
   for (const name of result.applied) console.log(`  Applying ${name}...${fake ? " FAKED" : " OK"}`);
 }
 
@@ -247,7 +260,9 @@ async function cmdSquashmigrations(config: DormConfig, configDir: string): Promi
   const all = await loadMigrations(dir);
   const normals = all.filter((m) => m.replaces.length === 0);
   if (all.some((m) => m.replaces.length > 0)) {
-    fail("A squashed migration already exists. Delete the replaced files once fully migrated, then squash again.");
+    fail(
+      "A squashed migration already exists. Delete the replaced files once fully migrated, then squash again.",
+    );
   }
   if (normals.length < 2) fail("Need at least two migrations to squash.");
 
@@ -313,7 +328,9 @@ async function cmdFlush(args: Args): Promise<void> {
     for (const t of tables) await backend.run(`DELETE FROM ${q(t)}`);
     if (backend.vendor === "sqlite") {
       // Reset SQLite's AUTOINCREMENT counters too.
-      const seq = await backend.execute(`SELECT name FROM sqlite_master WHERE name = 'sqlite_sequence'`);
+      const seq = await backend.execute(
+        `SELECT name FROM sqlite_master WHERE name = 'sqlite_sequence'`,
+      );
       if (seq.length > 0) {
         await backend.run(
           `DELETE FROM sqlite_sequence WHERE name IN (${tables.map(() => "?").join(", ")})`,
@@ -332,7 +349,17 @@ async function cmdShell(): Promise<void> {
   console.log(`Also available: Q, F, Count, Sum, Avg, Min, Max, transaction, db`);
   const server = repl.start({ prompt: "dorm> " });
   for (const model of models) server.context[model.modelName] = model;
-  Object.assign(server.context, { Q, F, Count, Sum, Avg, Min, Max, transaction, db: getConnection() });
+  Object.assign(server.context, {
+    Q,
+    F,
+    Count,
+    Sum,
+    Avg,
+    Min,
+    Max,
+    transaction,
+    db: getConnection(),
+  });
 }
 
 function cmdDbshell(config: DormConfig): void {
@@ -348,12 +375,28 @@ function cmdDbshell(config: DormConfig): void {
       break;
     case "postgres":
       cmd = "psql";
-      args = ["-h", db.host ?? "127.0.0.1", "-p", String(db.port ?? 5432), "-U", db.user ?? "postgres", db.name];
+      args = [
+        "-h",
+        db.host ?? "127.0.0.1",
+        "-p",
+        String(db.port ?? 5432),
+        "-U",
+        db.user ?? "postgres",
+        db.name,
+      ];
       if (db.password) env = { ...process.env, PGPASSWORD: db.password };
       break;
     case "mysql":
       cmd = "mysql";
-      args = ["-h", db.host ?? "127.0.0.1", "-P", String(db.port ?? 3306), "-u", db.user ?? "root", db.name];
+      args = [
+        "-h",
+        db.host ?? "127.0.0.1",
+        "-P",
+        String(db.port ?? 3306),
+        "-u",
+        db.user ?? "root",
+        db.name,
+      ];
       if (db.password) args.splice(args.length - 1, 0, `-p${db.password}`);
       break;
     default:
@@ -378,7 +421,9 @@ async function cmdInspectdb(): Promise<void> {
   for (const { name } of tables as Array<{ name: string }>) {
     const cols = backend.pragmaTableInfo(name);
     const fks = await backend.execute(`PRAGMA foreign_key_list(${backend.quoteName(name)})`);
-    const fkByCol = new Map((fks as Array<Record<string, unknown>>).map((f) => [String(f.from), f]));
+    const fkByCol = new Map(
+      (fks as Array<Record<string, unknown>>).map((f) => [String(f.from), f]),
+    );
     const modelName = name.charAt(0).toUpperCase() + name.slice(1);
     console.log(`export const ${modelName} = defineModel("${modelName}", {`);
     for (const col of cols) {
@@ -393,7 +438,8 @@ async function cmdInspectdb(): Promise<void> {
         const target = String(fk.table);
         def = `fields.ForeignKey("${target.charAt(0).toUpperCase() + target.slice(1)}", { dbColumn: "${colName}" })`;
       } else if (type.includes("INT")) def = `fields.IntegerField()`;
-      else if (type === "REAL" || type.includes("FLOA") || type.includes("DOUB")) def = `fields.FloatField()`;
+      else if (type === "REAL" || type.includes("FLOA") || type.includes("DOUB"))
+        def = `fields.FloatField()`;
       else def = `fields.TextField()`;
       const opts = notNull ? "" : " /* null: true */";
       console.log(`  ${colName.replace(/Id$/, "")}: ${def},${opts}`);
@@ -437,7 +483,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     return;
   }
 
-  const { config, dir: configDir } = await loadConfig(args.flags.get("config") as string | undefined);
+  const { config, dir: configDir } = await loadConfig(
+    args.flags.get("config") as string | undefined,
+  );
   await configure(config);
   await loadModels(config, configDir);
 
@@ -477,7 +525,8 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 }
 
 // Run when invoked directly (bin/dorm.js imports and calls main()).
-const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+const invokedDirectly =
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (invokedDirectly) {
   main().catch((err) => {
     console.error(err instanceof Error ? err.message : err);

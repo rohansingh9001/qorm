@@ -55,15 +55,16 @@ describe("using() — multi-DB routing", () => {
     await connect({ engine: "sqlite", name: ":memory:" }, "other");
     const other = getConnection("other");
     await other.schema.createTable(Product.meta);
-    await other.run(`INSERT INTO "product" ("name", "nickname", "price", "category") VALUES (?, ?, ?, ?)`, [
-      "OnlyInOther",
-      null,
-      1,
-      "x",
-    ]);
+    await other.run(
+      `INSERT INTO "product" ("name", "nickname", "price", "category") VALUES (?, ?, ?, ?)`,
+      ["OnlyInOther", null, 1, "x"],
+    );
 
     assert.equal(await Product.objects.using("other").count(), 1);
-    assert.equal((await Product.objects.using("other").get({ name: "OnlyInOther" })).name, "OnlyInOther");
+    assert.equal(
+      (await Product.objects.using("other").get({ name: "OnlyInOther" })).name,
+      "OnlyInOther",
+    );
     // The default connection is unaffected.
     assert.equal(await Product.objects.filter({ name: "OnlyInOther" }).exists(), false);
   });
@@ -71,14 +72,20 @@ describe("using() — multi-DB routing", () => {
 
 describe("only / defer", () => {
   test("only() loads pk + listed fields; others are undefined", async () => {
-    const p = (await Product.objects.only("name").get({ name: "Widget" })) as Record<string, unknown>;
+    const p = (await Product.objects.only("name").get({ name: "Widget" })) as Record<
+      string,
+      unknown
+    >;
     assert.equal(p.name, "Widget");
     assert.equal(p.price, undefined);
     assert.ok(p.id);
   });
 
   test("defer() skips listed fields", async () => {
-    const p = (await Product.objects.defer("price", "nickname").get({ name: "Gadget" })) as Record<string, unknown>;
+    const p = (await Product.objects.defer("price", "nickname").get({ name: "Gadget" })) as Record<
+      string,
+      unknown
+    >;
     assert.equal(p.name, "Gadget");
     assert.equal(p.price, undefined);
     assert.equal(p.category, "tools");
@@ -110,8 +117,14 @@ describe("set operations", () => {
   test("intersection and difference", async () => {
     const tools = Product.objects.filter({ category: "tools" });
     const cheap = Product.objects.filter({ price__lt: 10 });
-    assert.deepEqual((await tools.intersection(cheap)).map((p) => p.name), ["Widget"]);
-    assert.deepEqual((await tools.difference(cheap)).map((p) => p.name), ["Gadget"]);
+    assert.deepEqual(
+      (await tools.intersection(cheap)).map((p) => p.name),
+      ["Widget"],
+    );
+    assert.deepEqual(
+      (await tools.difference(cheap)).map((p) => p.name),
+      ["Gadget"],
+    );
   });
 
   test("slice and first on combined querysets", async () => {
@@ -158,8 +171,14 @@ describe("terminal extras", () => {
     const n = await Product.objects.bulkUpdate(prods, ["price"]);
     assert.equal(n, 2);
     const reloaded = await Product.objects.filter({ category: "tools" }).orderBy("name");
-    assert.deepEqual(reloaded.map((p) => p.name), ["Gadget", "Widget"]); // names NOT persisted
-    assert.deepEqual(reloaded.map((p) => p.price), [25.5, 10.99]);
+    assert.deepEqual(
+      reloaded.map((p) => p.name),
+      ["Gadget", "Widget"],
+    ); // names NOT persisted
+    assert.deepEqual(
+      reloaded.map((p) => p.price),
+      [25.5, 10.99],
+    );
     // restore
     for (const p of reloaded) p.price = p.price - 1;
     await Product.objects.bulkUpdate(reloaded, ["price"]);
@@ -213,12 +232,7 @@ describe("window functions", () => {
       .annotate({ rank: Window(Rank(), { partitionBy: ["category"], orderBy: ["-price"] }) })
       .orderBy("category", "name");
     const got = rows.map((r) => `${r.category}/${r.name}:${anyOf(r).rank}`);
-    assert.deepEqual(got, [
-      "tools/Gadget:1",
-      "tools/Widget:2",
-      "toys/Doohickey:2",
-      "toys/Gizmo:1",
-    ]);
+    assert.deepEqual(got, ["tools/Gadget:1", "tools/Widget:2", "toys/Doohickey:2", "toys/Gizmo:1"]);
   });
 
   test("RowNumber and windowed Sum (running total)", async () => {
@@ -228,7 +242,10 @@ describe("window functions", () => {
         running: Window(Sum("price"), { orderBy: ["price"] }),
       })
       .orderBy("price");
-    assert.deepEqual(rows.map((r) => anyOf(r).n), [1, 2, 3, 4]);
+    assert.deepEqual(
+      rows.map((r) => anyOf(r).n),
+      [1, 2, 3, 4],
+    );
     const running = rows.map((r) => Math.round(anyOf(r).running * 100) / 100);
     assert.deepEqual(running, [5.0, 14.99, 39.49, 138.49]);
   });

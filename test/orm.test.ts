@@ -6,15 +6,7 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  Model,
-  defineModel,
-  fields,
-  Q,
-  connect,
-  closeAll,
-  getConnection,
-} from "../src/index.ts";
+import { Model, defineModel, fields, Q, connect, closeAll, getConnection } from "../src/index.ts";
 
 /* ----- models ----------------------------------------------------------- */
 
@@ -63,7 +55,10 @@ describe("model definition", () => {
     assert.equal(Author.meta.dbTable, "authors");
     assert.equal(Author.meta.pk.name, "id");
     assert.equal(Author.meta.pk.column, "id");
-    assert.deepEqual([...Author.meta.fields.keys()], ["id", "name", "email", "age", "active", "createdAt"]);
+    assert.deepEqual(
+      [...Author.meta.fields.keys()],
+      ["id", "name", "email", "age", "active", "createdAt"],
+    );
   });
 
   test("ForeignKey uses an <name>Id attribute and column", () => {
@@ -193,7 +188,10 @@ describe("querysets & lookups", () => {
 
   test("get raises DoesNotExist / MultipleObjectsReturned", async () => {
     await assert.rejects(() => Author.objects.get({ name: "Ghost" }), Author.DoesNotExist);
-    await assert.rejects(() => Author.objects.get({ name__startswith: "Al" }), Author.MultipleObjectsReturned);
+    await assert.rejects(
+      () => Author.objects.get({ name__startswith: "Al" }),
+      Author.MultipleObjectsReturned,
+    );
   });
 
   test("values / valuesList(flat) projections", async () => {
@@ -213,9 +211,7 @@ describe("querysets & lookups", () => {
 
 describe("Q objects", () => {
   test("or / and / not compose", async () => {
-    const rows = await Author.objects.filter(
-      Q({ name: "Alice" }).or(Q({ name: "Zoe" })),
-    );
+    const rows = await Author.objects.filter(Q({ name: "Alice" }).or(Q({ name: "Zoe" })));
     const names = rows.map((r) => r.name).sort();
     assert.deepEqual(names, ["Alice", "Zoe"]);
 

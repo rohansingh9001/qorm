@@ -4,7 +4,19 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { defineModel, fields, F, Count, Sum, Avg, Max, Min, connect, closeAll, getConnection } from "../src/index.ts";
+import {
+  defineModel,
+  fields,
+  F,
+  Count,
+  Sum,
+  Avg,
+  Max,
+  Min,
+  connect,
+  closeAll,
+  getConnection,
+} from "../src/index.ts";
 
 const Store = defineModel("Store", {
   name: fields.CharField({ maxLength: 100 }),
@@ -41,12 +53,18 @@ after(async () => {
 describe("F() expressions", () => {
   test("column-vs-column filter", async () => {
     const low = await Product.objects.filter({ stock__lt: F("threshold") });
-    assert.deepEqual(low.map((p) => p.name), ["Widget"]); // 3 < 5
+    assert.deepEqual(
+      low.map((p) => p.name),
+      ["Widget"],
+    ); // 3 < 5
   });
 
   test("column-vs-column with gte", async () => {
     const ok = await Product.objects.filter({ stock__gte: F("threshold") }).orderBy("name");
-    assert.deepEqual(ok.map((p) => p.name), ["Gadget", "Gizmo"]); // 50>=5, 5>=5
+    assert.deepEqual(
+      ok.map((p) => p.name),
+      ["Gadget", "Gizmo"],
+    ); // 50>=5, 5>=5
   });
 
   test("arithmetic in update: increment", async () => {
@@ -96,7 +114,9 @@ describe("annotate()", () => {
   });
 
   test("Sum over a spanned reverse relation", async () => {
-    const stores = await Store.objects.annotate({ totalStock: Sum("products__stock") }).orderBy("name");
+    const stores = await Store.objects
+      .annotate({ totalStock: Sum("products__stock") })
+      .orderBy("name");
     const acme = stores.find((s) => s.name === "Acme")!;
     assert.equal(anyOf(acme).totalStock, 58);
   });

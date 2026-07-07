@@ -20,7 +20,10 @@ export interface RunResult {
 /** Translates model metadata into dialect DDL (Django's `SchemaEditor`). */
 export interface SchemaEditor {
   /** Create the model's table (+ indexes and auto M2M through-tables unless disabled). */
-  createTable(meta: ModelMeta, opts?: { indexes?: boolean; through?: boolean; tableName?: string }): Promise<void>;
+  createTable(
+    meta: ModelMeta,
+    opts?: { indexes?: boolean; through?: boolean; tableName?: string },
+  ): Promise<void>;
   dropTable(meta: ModelMeta, opts?: { ifExists?: boolean }): Promise<void>;
   /** ALTER TABLE ADD COLUMN; NOT NULL columns need a serializable default to backfill. */
   addColumn(meta: ModelMeta, field: Field): Promise<void>;
@@ -57,7 +60,11 @@ export interface Backend {
   /* ----- dialect surface (consumed by the compiler & shared layers) -------- */
 
   /** INSERT and return the auto-generated PK (RETURNING on PG; insert id elsewhere). */
-  runInsert(sql: string, params: SqlValue[], pkColumn: string): Promise<{ insertedPk: unknown; changes: number }>;
+  runInsert(
+    sql: string,
+    params: SqlValue[],
+    pkColumn: string,
+  ): Promise<{ insertedPk: unknown; changes: number }>;
   /** Full duplicate-ignoring INSERT statement with one placeholder per column. */
   sqlInsertIgnore(table: string, columns: string[]): string;
   /** INSERT with no explicit columns (all defaults). */

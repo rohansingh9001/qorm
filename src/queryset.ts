@@ -14,7 +14,14 @@
  */
 import type { ModelClass, ModelInstance } from "./types.ts";
 import type { Backend } from "./backends/base.ts";
-import { type QueryState, type OrderBy, type Condition, type SqlValue, emptyState, cloneState } from "./query/ast.ts";
+import {
+  type QueryState,
+  type OrderBy,
+  type Condition,
+  type SqlValue,
+  emptyState,
+  cloneState,
+} from "./query/ast.ts";
 import { toCondition, type QExpr, type AggregateExpr, type AnnotationExpr } from "./expressions.ts";
 import type { FilterObject } from "./query/lookups.ts";
 import { FieldError } from "./errors.ts";
@@ -32,7 +39,9 @@ import {
 type Filterish = QExpr | FilterObject;
 
 function parseOrderTokens(tokens: string[]): OrderBy[] {
-  return tokens.map((t) => (t.startsWith("-") ? { field: t.slice(1), desc: true } : { field: t, desc: false }));
+  return tokens.map((t) =>
+    t.startsWith("-") ? { field: t.slice(1), desc: true } : { field: t, desc: false },
+  );
 }
 
 export class QuerySet<T = ModelInstance> implements PromiseLike<T[]>, AsyncIterable<T> {
@@ -228,15 +237,27 @@ export class QuerySet<T = ModelInstance> implements PromiseLike<T[]>, AsyncItera
 
   /** SQL UNION (or UNION ALL) with another queryset over the same model. */
   union(other: QuerySet<T>, opts: { all?: boolean } = {}): CombinedQuerySet<T> {
-    return new CombinedQuerySet<T>(this.model, [this._compiledForCombine(), other._compiledForCombine()], opts.all ? "UNION ALL" : "UNION");
+    return new CombinedQuerySet<T>(
+      this.model,
+      [this._compiledForCombine(), other._compiledForCombine()],
+      opts.all ? "UNION ALL" : "UNION",
+    );
   }
   /** SQL INTERSECT with another queryset over the same model. */
   intersection(other: QuerySet<T>): CombinedQuerySet<T> {
-    return new CombinedQuerySet<T>(this.model, [this._compiledForCombine(), other._compiledForCombine()], "INTERSECT");
+    return new CombinedQuerySet<T>(
+      this.model,
+      [this._compiledForCombine(), other._compiledForCombine()],
+      "INTERSECT",
+    );
   }
   /** SQL EXCEPT — rows in this queryset that are not in `other`. */
   difference(other: QuerySet<T>): CombinedQuerySet<T> {
-    return new CombinedQuerySet<T>(this.model, [this._compiledForCombine(), other._compiledForCombine()], "EXCEPT");
+    return new CombinedQuerySet<T>(
+      this.model,
+      [this._compiledForCombine(), other._compiledForCombine()],
+      "EXCEPT",
+    );
   }
 
   /**
@@ -332,7 +353,9 @@ export class QuerySet<T = ModelInstance> implements PromiseLike<T[]>, AsyncItera
       throw new this.model.DoesNotExist(`${this.meta.modelName} matching query does not exist.`);
     }
     if (rows.length > 1) {
-      throw new this.model.MultipleObjectsReturned(`get() returned more than one ${this.meta.modelName}.`);
+      throw new this.model.MultipleObjectsReturned(
+        `get() returned more than one ${this.meta.modelName}.`,
+      );
     }
     return rows[0]!;
   }
@@ -422,12 +445,14 @@ export class QuerySet<T = ModelInstance> implements PromiseLike<T[]>, AsyncItera
    * (Django's `bulk_update`). Returns the number of rows updated.
    */
   async bulkUpdate(objs: T[], fieldNames: string[]): Promise<number> {
-    if (fieldNames.length === 0) throw new FieldError("bulkUpdate() requires at least one field name.");
+    if (fieldNames.length === 0)
+      throw new FieldError("bulkUpdate() requires at least one field name.");
     if (objs.length === 0) return 0;
     const q = (s: string) => this.backend.quoteName(s);
     const fields = fieldNames.map((name) => {
       const f = this.meta.fields.get(name) ?? this.meta.fieldList.find((x) => x.attname === name);
-      if (!f) throw new FieldError(`Unknown field "${name}" in bulkUpdate() on ${this.meta.modelName}.`);
+      if (!f)
+        throw new FieldError(`Unknown field "${name}" in bulkUpdate() on ${this.meta.modelName}.`);
       return f;
     });
     const setSql = fields.map((f) => `${q(f.column)} = ?`).join(", ");
@@ -490,8 +515,17 @@ export class CombinedQuerySet<T = ModelInstance> implements PromiseLike<T[]>, As
 
   /** Order by attribute names of the combined rows (`"-name"` for descending). */
   orderBy(...fields: string[]): CombinedQuerySet<T> {
-    const order = fields.map((t) => (t.startsWith("-") ? { field: t.slice(1), desc: true } : { field: t, desc: false }));
-    return new CombinedQuerySet<T>(this.model, this.parts, this.op, order, this.limitN, this.offsetN);
+    const order = fields.map((t) =>
+      t.startsWith("-") ? { field: t.slice(1), desc: true } : { field: t, desc: false },
+    );
+    return new CombinedQuerySet<T>(
+      this.model,
+      this.parts,
+      this.op,
+      order,
+      this.limitN,
+      this.offsetN,
+    );
   }
 
   slice(start: number, end?: number): CombinedQuerySet<T> {
@@ -506,10 +540,13 @@ export class CombinedQuerySet<T = ModelInstance> implements PromiseLike<T[]>, As
   private compiled(): { sql: string; params: SqlValue[] } {
     const q = (s: string) => this.backend.quoteName(s);
     // Derived tables need aliases on Postgres/MySQL (harmless on SQLite).
-    let sql = this.parts.map((p, i) => `SELECT * FROM (${p.sql}) ${q(`U${i}`)}`).join(` ${this.op} `);
+    let sql = this.parts
+      .map((p, i) => `SELECT * FROM (${p.sql}) ${q(`U${i}`)}`)
+      .join(` ${this.op} `);
     const params: SqlValue[] = this.parts.flatMap((p) => p.params);
     if (this.order.length > 0) {
-      sql += " ORDER BY " + this.order.map((o) => `${q(o.field)} ${o.desc ? "DESC" : "ASC"}`).join(", ");
+      sql +=
+        " ORDER BY " + this.order.map((o) => `${q(o.field)} ${o.desc ? "DESC" : "ASC"}`).join(", ");
     }
     if (this.limitN !== null) {
       sql += " LIMIT ?";

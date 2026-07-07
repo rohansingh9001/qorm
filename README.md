@@ -67,11 +67,11 @@ await connect({ engine: "sqlite", name: "app.sqlite" });
 
 // Lazy, chainable querysets — nothing runs until you await / iterate
 const qs = Author.objects
-  .filter({ name__startswith: "J" })     // lazy
-  .exclude({ email__isnull: true })      // lazy
-  .orderBy("-createdAt");                // lazy
-const authors = await qs;                          // executes -> Author[]
-for await (const a of qs) console.log(a.name);     // async iteration
+  .filter({ name__startswith: "J" }) // lazy
+  .exclude({ email__isnull: true }) // lazy
+  .orderBy("-createdAt"); // lazy
+const authors = await qs; // executes -> Author[]
+for await (const a of qs) console.log(a.name); // async iteration
 
 // get() raises Author.DoesNotExist / Author.MultipleObjectsReturned
 const jane = await Author.objects.get({ email: "jane@x.com" });
@@ -83,8 +83,8 @@ await Book.objects.filter({ tags__label: "fantasy" });
 
 // Related managers
 await jane.books.create({ title: "New Book", price: "9.99" });
-await book.tags.add(tag1, tag2);                  // M2M: add/remove/set/clear
-await Author.objects.selectRelated("books__author");   // JOIN eager-load
+await book.tags.add(tag1, tag2); // M2M: add/remove/set/clear
+await Author.objects.selectRelated("books__author"); // JOIN eager-load
 await Author.objects.prefetchRelated("books", "tags"); // batched, no N+1
 
 // Expressions, aggregates, annotations, window functions
@@ -92,7 +92,9 @@ await Book.objects.update({ price: F("price").mul(1.1) });
 await Book.objects.filter({ stock__lt: F("threshold") });
 const { avgPrice } = await Book.objects.aggregate({ avgPrice: Avg("price") });
 await Author.objects.annotate({ numBooks: Count("books"), display: Coalesce("nickname", "name") });
-await Book.objects.annotate({ rank: Window(Rank(), { partitionBy: ["authorId"], orderBy: ["-price"] }) });
+await Book.objects.annotate({
+  rank: Window(Rank(), { partitionBy: ["authorId"], orderBy: ["-price"] }),
+});
 
 // Transactions with savepoint nesting (AsyncLocalStorage-propagated)
 await transaction.atomic(async () => {
@@ -135,16 +137,16 @@ import { defineConfig } from "dormjs";
 export default defineConfig({
   databases: {
     default: {
-      engine: "postgres",            // sqlite | postgres | mysql
+      engine: "postgres", // sqlite | postgres | mysql
       name: "mydb",
       user: "postgres",
       password: process.env.DB_PASSWORD,
       host: "127.0.0.1",
       port: 5432,
     },
-    replica: { engine: "sqlite", name: "replica.sqlite" },   // Model.objects.using("replica")
+    replica: { engine: "sqlite", name: "replica.sqlite" }, // Model.objects.using("replica")
   },
-  models: ["./models/**/*.{ts,js,mjs}"],   // autoloaded so models register
+  models: ["./models/**/*.{ts,js,mjs}"], // autoloaded so models register
   migrations: { dir: "./migrations" },
 });
 ```
@@ -156,14 +158,20 @@ Migration files are plain code (no imports needed — the `ops` namespace is inj
 export default {
   dependencies: [],
   operations: (ops) => [
-    ops.createModel("Author", {
-      id: ops.fields.BigAutoField({ primaryKey: true }),
-      name: ops.fields.CharField({ maxLength: 100 }),
-      email: ops.fields.EmailField({ unique: true, maxLength: 254 }),
-    }, { dbTable: "authors", ordering: ["name"] }),
+    ops.createModel(
+      "Author",
+      {
+        id: ops.fields.BigAutoField({ primaryKey: true }),
+        name: ops.fields.CharField({ maxLength: 100 }),
+        email: ops.fields.EmailField({ unique: true, maxLength: 254 }),
+      },
+      { dbTable: "authors", ordering: ["name"] },
+    ),
     ops.addField("Book", "isbn", ops.fields.CharField({ maxLength: 13, null: true })),
-    ops.runSql("UPDATE ...", "REVERSE SQL ..."),                  // raw escape hatch
-    ops.runJs(async ({ db }) => { /* data migration */ }),        // Django's RunPython
+    ops.runSql("UPDATE ...", "REVERSE SQL ..."), // raw escape hatch
+    ops.runJs(async ({ db }) => {
+      /* data migration */
+    }), // Django's RunPython
   ],
 };
 ```
@@ -212,30 +220,30 @@ schema generation.
 
 ## Intentional deviations from Django (design 14)
 
-| Area | Django | dorm | Why |
-| --- | --- | --- | --- |
-| Registration | metaclass | `defineModel()` / `register()` | no metaclasses in JS |
-| Materialize | `list(qs)` | `await qs` (thenable) | no sync I/O |
-| Boolean composition | `&` `\|` `~` | `.and()` `.or()` `.not()` | no operator overloading |
-| `F` arithmetic | `+ - * /` | `.add()` `.sub()` `.mul()` `.div()` | no operator overloading |
-| Forward FK | lazy attribute | `await fk.get()` / `selectRelated` cache | no lazy attribute I/O |
-| Relation refs | `"app.Model"` | `() => Model` thunk or `"Model"` string | circular imports |
-| Migration files | class + imports | import-free `{ dependencies, operations: (ops) => [...] }` | portability |
-| Transactions | decorator/context mgr | `atomic(callback)` + `AsyncLocalStorage` | async context |
-| Signals | sync | sync **or** async receivers (awaited) | async side effects |
+| Area                | Django                | dorm                                                       | Why                     |
+| ------------------- | --------------------- | ---------------------------------------------------------- | ----------------------- |
+| Registration        | metaclass             | `defineModel()` / `register()`                             | no metaclasses in JS    |
+| Materialize         | `list(qs)`            | `await qs` (thenable)                                      | no sync I/O             |
+| Boolean composition | `&` `\|` `~`          | `.and()` `.or()` `.not()`                                  | no operator overloading |
+| `F` arithmetic      | `+ - * /`             | `.add()` `.sub()` `.mul()` `.div()`                        | no operator overloading |
+| Forward FK          | lazy attribute        | `await fk.get()` / `selectRelated` cache                   | no lazy attribute I/O   |
+| Relation refs       | `"app.Model"`         | `() => Model` thunk or `"Model"` string                    | circular imports        |
+| Migration files     | class + imports       | import-free `{ dependencies, operations: (ops) => [...] }` | portability             |
+| Transactions        | decorator/context mgr | `atomic(callback)` + `AsyncLocalStorage`                   | async context           |
+| Signals             | sync                  | sync **or** async receivers (awaited)                      | async side effects      |
 
 ## Backends
 
-| | SQLite | PostgreSQL | MySQL 8 |
-| --- | --- | --- | --- |
-| Driver | `node:sqlite` (built-in) | `pg` (optional peer dep) | `mysql2` (optional peer dep) |
-| Placeholders | `?` | `?` → `$n` rewrite | `?` |
-| Auto PK | `AUTOINCREMENT` + rowid | `bigserial` + `RETURNING` | `AUTO_INCREMENT` + insertId |
-| `alterField` | table-rebuild dance | native `ALTER COLUMN` | `MODIFY COLUMN` |
-| Regex lookups | registered JS function | `~` / `~*` | `REGEXP_LIKE(…, 'c'/'i')` |
-| Case-sensitive LIKE | `LIKE` | `LIKE` | `LIKE BINARY` |
-| Row locks | accepted, no-op | `FOR UPDATE` | `FOR UPDATE` |
-| DDL in transactions | yes | yes | auto-commits (MySQL limitation, as in Django) |
+|                     | SQLite                   | PostgreSQL                | MySQL 8                                       |
+| ------------------- | ------------------------ | ------------------------- | --------------------------------------------- |
+| Driver              | `node:sqlite` (built-in) | `pg` (optional peer dep)  | `mysql2` (optional peer dep)                  |
+| Placeholders        | `?`                      | `?` → `$n` rewrite        | `?`                                           |
+| Auto PK             | `AUTOINCREMENT` + rowid  | `bigserial` + `RETURNING` | `AUTO_INCREMENT` + insertId                   |
+| `alterField`        | table-rebuild dance      | native `ALTER COLUMN`     | `MODIFY COLUMN`                               |
+| Regex lookups       | registered JS function   | `~` / `~*`                | `REGEXP_LIKE(…, 'c'/'i')`                     |
+| Case-sensitive LIKE | `LIKE`                   | `LIKE`                    | `LIKE BINARY`                                 |
+| Row locks           | accepted, no-op          | `FOR UPDATE`              | `FOR UPDATE`                                  |
+| DDL in transactions | yes                      | yes                       | auto-commits (MySQL limitation, as in Django) |
 
 All three run the same conformance suite (CRUD, lookups, JOINs, M2M, aggregates,
 window functions, transactions/savepoints, and the migration engine end-to-end).

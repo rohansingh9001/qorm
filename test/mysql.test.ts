@@ -35,5 +35,9 @@ async function available(): Promise<boolean> {
 if (await available()) {
   runConformanceSuite("mysql", config);
 } else {
-  test("mysql conformance (server not reachable — start the docker container)", { skip: true }, () => {});
+  test(
+    "mysql conformance (server not reachable — start the docker container)",
+    { skip: true },
+    () => {},
+  );
 }

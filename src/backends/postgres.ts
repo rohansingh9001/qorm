@@ -77,7 +77,9 @@ class PostgresSchemaEditor implements SchemaEditor {
     if (opts.indexes !== false) {
       for (const f of concrete) {
         if (f.dbIndex && !f.unique && !f.primaryKey) {
-          await this.ddl(`CREATE INDEX ${q(`idx_${table}_${f.column}`)} ON ${q(table)} (${q(f.column)})`);
+          await this.ddl(
+            `CREATE INDEX ${q(`idx_${table}_${f.column}`)} ON ${q(table)} (${q(f.column)})`,
+          );
         }
       }
     }
@@ -110,7 +112,9 @@ class PostgresSchemaEditor implements SchemaEditor {
     }
     await this.ddl(`ALTER TABLE ${q(meta.dbTable)} ADD COLUMN ${def}`);
     if (field.dbIndex && !field.unique) {
-      await this.ddl(`CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`);
+      await this.ddl(
+        `CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`,
+      );
     }
   }
 
@@ -127,13 +131,19 @@ class PostgresSchemaEditor implements SchemaEditor {
     const oldType = oldField.dbType("postgres");
     const newType = newField.dbType("postgres");
     if (oldType !== newType) {
-      await this.ddl(`ALTER TABLE ${table} ALTER COLUMN ${col} TYPE ${newType} USING ${col}::${newType}`);
+      await this.ddl(
+        `ALTER TABLE ${table} ALTER COLUMN ${col} TYPE ${newType} USING ${col}::${newType}`,
+      );
     }
     if (oldField.nullable !== newField.nullable) {
-      await this.ddl(`ALTER TABLE ${table} ALTER COLUMN ${col} ${newField.nullable ? "DROP" : "SET"} NOT NULL`);
+      await this.ddl(
+        `ALTER TABLE ${table} ALTER COLUMN ${col} ${newField.nullable ? "DROP" : "SET"} NOT NULL`,
+      );
     }
     if (!oldField.unique && newField.unique) {
-      await this.ddl(`CREATE UNIQUE INDEX ${q(`idx_${newMeta.dbTable}_${newField.column}_uniq`)} ON ${table} (${col})`);
+      await this.ddl(
+        `CREATE UNIQUE INDEX ${q(`idx_${newMeta.dbTable}_${newField.column}_uniq`)} ON ${table} (${col})`,
+      );
     } else if (oldField.unique && !newField.unique) {
       await this.ddl(`DROP INDEX IF EXISTS ${q(`idx_${newMeta.dbTable}_${newField.column}_uniq`)}`);
     }
@@ -163,16 +173,23 @@ class PostgresSchemaEditor implements SchemaEditor {
     );
   }
 
-  async dropManyToMany(_meta: ModelMeta, field: Field, opts: { ifExists?: boolean } = {}): Promise<void> {
+  async dropManyToMany(
+    _meta: ModelMeta,
+    field: Field,
+    opts: { ifExists?: boolean } = {},
+  ): Promise<void> {
     const m2m = field as ManyToManyField;
     const q = (s: string) => this.backend.quoteName(s);
-    await this.ddl(`DROP TABLE ${opts.ifExists ? "IF EXISTS " : ""}${q(m2m.throughTable())} CASCADE`);
+    await this.ddl(
+      `DROP TABLE ${opts.ifExists ? "IF EXISTS " : ""}${q(m2m.throughTable())} CASCADE`,
+    );
   }
 
   private columnDef(f: Field): string {
     const q = (s: string) => this.backend.quoteName(s);
     let def = `${q(f.column)} ${f.dbType("postgres")}`;
-    if (f.primaryKey) def += " PRIMARY KEY"; // serial/bigserial carry the auto-increment
+    if (f.primaryKey)
+      def += " PRIMARY KEY"; // serial/bigserial carry the auto-increment
     else {
       if (f.unique) def += " UNIQUE";
       if (!f.nullable) def += " NOT NULL";
@@ -234,10 +251,20 @@ export class PostgresBackend implements Backend {
 
   /* ----- dialect surface --------------------------------------------------- */
 
-  async runInsert(sql: string, params: SqlValue[], pkColumn: string): Promise<{ insertedPk: unknown; changes: number }> {
+  async runInsert(
+    sql: string,
+    params: SqlValue[],
+    pkColumn: string,
+  ): Promise<{ insertedPk: unknown; changes: number }> {
     await this.ensureConnected();
-    const r = await this.client.query(`${toPgPlaceholders(sql)} RETURNING ${this.quoteName(pkColumn)}`, params as unknown[]);
-    return { insertedPk: (r.rows[0] as Record<string, unknown>)[pkColumn], changes: r.rowCount ?? 0 };
+    const r = await this.client.query(
+      `${toPgPlaceholders(sql)} RETURNING ${this.quoteName(pkColumn)}`,
+      params as unknown[],
+    );
+    return {
+      insertedPk: (r.rows[0] as Record<string, unknown>)[pkColumn],
+      changes: r.rowCount ?? 0,
+    };
   }
   sqlInsertIgnore(table: string, columns: string[]): string {
     const cols = columns.map((c) => this.quoteName(c)).join(", ");

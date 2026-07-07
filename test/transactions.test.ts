@@ -4,7 +4,16 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { defineModel, fields, transaction, atomic, signals, connect, closeAll, getConnection } from "../src/index.ts";
+import {
+  defineModel,
+  fields,
+  transaction,
+  atomic,
+  signals,
+  connect,
+  closeAll,
+  getConnection,
+} from "../src/index.ts";
 
 const Account = defineModel("Account", {
   name: fields.CharField({ maxLength: 50 }),
@@ -82,7 +91,9 @@ describe("transaction.atomic", () => {
       await Account.objects.filter({ name: "A" }).update({ balance: 150 });
       await Account.objects.filter({ name: "B" }).update({ balance: 150 });
     });
-    const balances = await Account.objects.filter({ name__in: ["A", "B"] }).valuesList(["balance"], { flat: true });
+    const balances = await Account.objects
+      .filter({ name__in: ["A", "B"] })
+      .valuesList(["balance"], { flat: true });
     assert.deepEqual(balances, [150, 150]);
   });
 });

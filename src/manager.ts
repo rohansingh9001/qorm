@@ -190,7 +190,8 @@ export class RelatedManager<T extends ModelInstance = ModelInstance> extends Man
 
   /** Like `all()`, but returns the prefetched cache when one is present. */
   override all(): QuerySet<T> {
-    const cache = (this.owner as Record<string, unknown>)[`__prefetch_${this.accessorName}`] as T[] | undefined;
+    const cache = (this.owner as Record<string, unknown>)[`__prefetch_${this.accessorName}`] as
+      T[] | undefined;
     const qs = this.getQuerySet();
     return cache ? qs.withCache(cache) : qs;
   }
@@ -275,7 +276,9 @@ export class ManyRelatedManager<T extends ModelInstance = ModelInstance> extends
   private ownerPk(): SqlValue {
     const pk = this.owner.pk;
     if (pk === null || pk === undefined) {
-      throw new FieldError(`Cannot use the "${this.accessorName}" relation on an unsaved instance.`);
+      throw new FieldError(
+        `Cannot use the "${this.accessorName}" relation on an unsaved instance.`,
+      );
     }
     return pk as SqlValue;
   }
@@ -293,7 +296,8 @@ export class ManyRelatedManager<T extends ModelInstance = ModelInstance> extends
 
   /** Like `all()`, but returns the prefetched cache when one is present. */
   override all(): QuerySet<T> {
-    const cache = (this.owner as Record<string, unknown>)[`__prefetch_${this.accessorName}`] as T[] | undefined;
+    const cache = (this.owner as Record<string, unknown>)[`__prefetch_${this.accessorName}`] as
+      T[] | undefined;
     const qs = this.getQuerySet();
     return cache ? qs.withCache(cache) : qs;
   }
@@ -332,7 +336,9 @@ export class ManyRelatedManager<T extends ModelInstance = ModelInstance> extends
   async clear(): Promise<void> {
     const q = (s: string) => this.backend.quoteName(s);
     const b = this.binding;
-    await this.backend.run(`DELETE FROM ${q(b.table)} WHERE ${q(b.ownerCol)} = ?`, [this.ownerPk()]);
+    await this.backend.run(`DELETE FROM ${q(b.table)} WHERE ${q(b.ownerCol)} = ?`, [
+      this.ownerPk(),
+    ]);
     await signals.m2mChanged.send(this.model, { instance: this.owner, action: "clear", pks: [] });
   }
 

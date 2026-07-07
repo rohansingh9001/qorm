@@ -89,7 +89,9 @@ export async function createBackend(cfg: DatabaseConfig): Promise<Backend> {
       });
     }
     default:
-      throw new NotSupportedError(`Unknown database engine "${(cfg as { engine?: string }).engine}".`);
+      throw new NotSupportedError(
+        `Unknown database engine "${(cfg as { engine?: string }).engine}".`,
+      );
   }
 }
 

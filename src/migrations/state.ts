@@ -7,12 +7,7 @@
  * also synthesizes runnable `ModelMeta`s ("historical models") from a state so
  * DDL is generated against what the schema looked like *then*, not now.
  */
-import {
-  Field,
-  ManyToManyField,
-  deserializeField,
-  type SerializedField,
-} from "../fields.ts";
+import { Field, ManyToManyField, deserializeField, type SerializedField } from "../fields.ts";
 import type { ModelClass, ModelMeta } from "../types.ts";
 import { FieldError } from "../errors.ts";
 

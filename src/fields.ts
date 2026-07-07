@@ -165,14 +165,19 @@ export abstract class Field {
     }
     if (this.options.choices) {
       const ok = this.options.choices.some(([v]) => v === value);
-      if (!ok) throw new FieldError(`${value} is not a valid choice for ${this.modelName}.${this.name}.`);
+      if (!ok)
+        throw new FieldError(`${value} is not a valid choice for ${this.modelName}.${this.name}.`);
     }
     for (const v of this.options.validators ?? []) v(value);
   }
 }
 
 export function isField(value: unknown): value is Field {
-  return typeof value === "object" && value !== null && (value as Record<symbol, unknown>)[FIELD_BRAND] === true;
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<symbol, unknown>)[FIELD_BRAND] === true
+  );
 }
 
 /* ----------------------------------------------------------------------------
@@ -315,7 +320,9 @@ export class EmailField extends CharField {
   override validate(value: unknown): void {
     super.validate(value);
     if (typeof value === "string" && !EMAIL_RE.test(value)) {
-      throw new FieldError(`${this.modelName}.${this.name}: "${value}" is not a valid email address.`);
+      throw new FieldError(
+        `${this.modelName}.${this.name}: "${value}" is not a valid email address.`,
+      );
     }
   }
 }
@@ -613,14 +620,16 @@ export const fields = {
   IntegerField: (o?: FieldOptions) => new IntegerField(o),
   BigIntegerField: (o?: FieldOptions) => new BigIntegerField(o),
   FloatField: (o?: FieldOptions) => new FloatField(o),
-  DecimalField: (o: FieldOptions & { maxDigits: number; decimalPlaces: number }) => new DecimalField(o),
+  DecimalField: (o: FieldOptions & { maxDigits: number; decimalPlaces: number }) =>
+    new DecimalField(o),
   CharField: (o: FieldOptions & { maxLength: number }) => new CharField(o),
   TextField: (o?: FieldOptions) => new TextField(o),
   EmailField: (o?: FieldOptions & { maxLength?: number }) => new EmailField(o),
   UUIDField: (o?: FieldOptions) => new UUIDField(o),
   BooleanField: (o?: FieldOptions) => new BooleanField(o),
   DateField: (o?: FieldOptions & { autoNow?: boolean; autoNowAdd?: boolean }) => new DateField(o),
-  DateTimeField: (o?: FieldOptions & { autoNow?: boolean; autoNowAdd?: boolean }) => new DateTimeField(o),
+  DateTimeField: (o?: FieldOptions & { autoNow?: boolean; autoNowAdd?: boolean }) =>
+    new DateTimeField(o),
   JSONField: (o?: FieldOptions) => new JSONField(o),
   ForeignKey: (to: RelatedRef, o?: ForeignKeyOptions) => new ForeignKey(to, o),
   OneToOneField: (to: RelatedRef, o?: ForeignKeyOptions) => new OneToOneField(to, o),
@@ -637,7 +646,8 @@ const SCALAR_CTORS: Record<string, (o: Record<string, unknown>) => Field> = {
   IntegerField: (o) => new IntegerField(o as FieldOptions),
   BigIntegerField: (o) => new BigIntegerField(o as FieldOptions),
   FloatField: (o) => new FloatField(o as FieldOptions),
-  DecimalField: (o) => new DecimalField(o as unknown as FieldOptions & { maxDigits: number; decimalPlaces: number }),
+  DecimalField: (o) =>
+    new DecimalField(o as unknown as FieldOptions & { maxDigits: number; decimalPlaces: number }),
   CharField: (o) => new CharField(o as unknown as FieldOptions & { maxLength: number }),
   TextField: (o) => new TextField(o as FieldOptions),
   EmailField: (o) => new EmailField(o as FieldOptions & { maxLength?: number }),
@@ -653,7 +663,10 @@ const SCALAR_CTORS: Record<string, (o: Record<string, unknown>) => Field> = {
  * through `resolve`, so migration state models (not the live registry) can be
  * the universe a historical field points into.
  */
-export function deserializeField(def: SerializedField, resolve: (name: string) => ModelClass): Field {
+export function deserializeField(
+  def: SerializedField,
+  resolve: (name: string) => ModelClass,
+): Field {
   const opts = def.options;
   switch (def.type) {
     case "ForeignKey":

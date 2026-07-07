@@ -21,7 +21,7 @@ This project (`dorm`) aims to reproduce that experience faithfully in Node.js. T
 ### Non-goals
 
 - We are **not** building a web framework, admin site, templating, or auth. Just the ORM + migrations + a shell.
-- We are **not** targeting 100% feature parity on day one — see the phased roadmap (12). We target *API-shape* parity so code reads like Django.
+- We are **not** targeting 100% feature parity on day one — see the phased roadmap (12). We target _API-shape_ parity so code reads like Django.
 
 ---
 
@@ -130,28 +130,28 @@ Author.register(); // binds manager, validates fields, adds to app registry
 
 **Deviation note:** Django uses a metaclass to auto-register models and inject the `objects` manager. JS lacks metaclasses, so we require an explicit `Model.register()` (or a `defineModel()` factory — see 4.4) call. The CLI's `makemigrations` autoloads every file under the configured `models/` dir, so registration always runs.
 
-Instance field access (`author.name`) returns values, exactly like Django. The static declaration is the *field descriptor*; the instance holds the *value*. The base class implements this split with per-instance data storage and getters/setters keyed off the registered field map.
+Instance field access (`author.name`) returns values, exactly like Django. The static declaration is the _field descriptor_; the instance holds the _value_. The base class implements this split with per-instance data storage and getters/setters keyed off the registered field map.
 
 ### 4.3 Field types (parity table)
 
-| Django | dorm | Notes |
-|---|---|---|
-| `AutoField` / `BigAutoField` | `AutoField` / `BigAutoField` | implicit `id` PK by default |
-| `CharField` | `CharField({ maxLength })` | `maxLength` required |
-| `TextField` | `TextField()` | |
-| `IntegerField` | `IntegerField()` | |
-| `BigIntegerField` | `BigIntegerField()` | maps to JS `bigint` optionally |
-| `FloatField` | `FloatField()` | |
-| `DecimalField` | `DecimalField({ maxDigits, decimalPlaces })` | string-backed to avoid float drift |
-| `BooleanField` | `BooleanField()` | |
-| `DateField` | `DateField()` | |
-| `DateTimeField` | `DateTimeField({ autoNow, autoNowAdd })` | |
-| `EmailField` | `EmailField()` | `CharField` + validator |
-| `UUIDField` | `UUIDField()` | |
-| `JSONField` | `JSONField()` | native JSON on PG/MySQL, text on SQLite |
-| `ForeignKey` | `ForeignKey(() => Author, { onDelete, relatedName })` | lazy ref via thunk |
-| `OneToOneField` | `OneToOneField(() => Profile, {...})` | |
-| `ManyToManyField` | `ManyToManyField(() => Tag, { through? })` | auto through-table |
+| Django                       | dorm                                                  | Notes                                   |
+| ---------------------------- | ----------------------------------------------------- | --------------------------------------- |
+| `AutoField` / `BigAutoField` | `AutoField` / `BigAutoField`                          | implicit `id` PK by default             |
+| `CharField`                  | `CharField({ maxLength })`                            | `maxLength` required                    |
+| `TextField`                  | `TextField()`                                         |                                         |
+| `IntegerField`               | `IntegerField()`                                      |                                         |
+| `BigIntegerField`            | `BigIntegerField()`                                   | maps to JS `bigint` optionally          |
+| `FloatField`                 | `FloatField()`                                        |                                         |
+| `DecimalField`               | `DecimalField({ maxDigits, decimalPlaces })`          | string-backed to avoid float drift      |
+| `BooleanField`               | `BooleanField()`                                      |                                         |
+| `DateField`                  | `DateField()`                                         |                                         |
+| `DateTimeField`              | `DateTimeField({ autoNow, autoNowAdd })`              |                                         |
+| `EmailField`                 | `EmailField()`                                        | `CharField` + validator                 |
+| `UUIDField`                  | `UUIDField()`                                         |                                         |
+| `JSONField`                  | `JSONField()`                                         | native JSON on PG/MySQL, text on SQLite |
+| `ForeignKey`                 | `ForeignKey(() => Author, { onDelete, relatedName })` | lazy ref via thunk                      |
+| `OneToOneField`              | `OneToOneField(() => Profile, {...})`                 |                                         |
+| `ManyToManyField`            | `ManyToManyField(() => Tag, { through? })`            | auto through-table                      |
 
 **Common field options** mirror Django: `null`, `blank` → `blank` (validation-only), `default`, `unique`, `dbIndex`, `choices`, `primaryKey`, `editable`, `validators`, `verboseName`, `helpText`.
 
@@ -162,13 +162,17 @@ Instance field access (`author.name`) returns values, exactly like Django. The s
 For teams who dislike static-property classes, a `defineModel` factory provides the same result with cleaner inference:
 
 ```typescript
-const Author = defineModel("Author", {
-  name: fields.CharField({ maxLength: 100 }),
-  email: fields.EmailField({ unique: true }),
-}, {
-  ordering: ["name"],
-  dbTable: "authors",
-});
+const Author = defineModel(
+  "Author",
+  {
+    name: fields.CharField({ maxLength: 100 }),
+    email: fields.EmailField({ unique: true }),
+  },
+  {
+    ordering: ["name"],
+    dbTable: "authors",
+  },
+);
 ```
 
 Both styles compile to the same internal model descriptor. The class style stays closer to Django source; the factory style gives better automatic TS typing of instances.
@@ -181,26 +185,26 @@ The heart of the parity effort. A `QuerySet` is **immutable**, **lazy**, and **c
 
 ### 5.1 Laziness & evaluation
 
-A queryset does nothing until it is *evaluated*. In Django evaluation triggers are: iteration, `len()`, slicing with a step, `list()`, `bool()`, pickling, `repr()`. In JS we map these to:
+A queryset does nothing until it is _evaluated_. In Django evaluation triggers are: iteration, `len()`, slicing with a step, `list()`, `bool()`, pickling, `repr()`. In JS we map these to:
 
-| Django trigger | dorm trigger |
-|---|---|
-| `for x in qs` | `for await (const x of qs)` (async iterator) |
-| `list(qs)` | `await qs` (thenable) or `await qs.all()` |
-| `len(qs)` | `await qs.count()` (explicit; no implicit length) |
-| `bool(qs)` | `await qs.exists()` |
-| slicing `qs[5:10]` | `qs.slice(5, 10)` (still lazy; LIMIT/OFFSET) |
-| `qs[0]` | `await qs.at(0)` / `await qs.first()` |
+| Django trigger     | dorm trigger                                      |
+| ------------------ | ------------------------------------------------- |
+| `for x in qs`      | `for await (const x of qs)` (async iterator)      |
+| `list(qs)`         | `await qs` (thenable) or `await qs.all()`         |
+| `len(qs)`          | `await qs.count()` (explicit; no implicit length) |
+| `bool(qs)`         | `await qs.exists()`                               |
+| slicing `qs[5:10]` | `qs.slice(5, 10)` (still lazy; LIMIT/OFFSET)      |
+| `qs[0]`            | `await qs.at(0)` / `await qs.first()`             |
 
-**Deviation note:** JS has no operator overloading and no synchronous blocking I/O, so every *materializing* call is `async`. A `QuerySet` is **thenable** — `await qs` returns the array of rows, making `await qs` the analogue of `list(qs)`. Chaining methods (`filter`, `exclude`, …) stays synchronous and returns a new lazy `QuerySet`.
+**Deviation note:** JS has no operator overloading and no synchronous blocking I/O, so every _materializing_ call is `async`. A `QuerySet` is **thenable** — `await qs` returns the array of rows, making `await qs` the analogue of `list(qs)`. Chaining methods (`filter`, `exclude`, …) stays synchronous and returns a new lazy `QuerySet`.
 
 ```typescript
 const qs = Author.objects
-  .filter({ name__startswith: "A" })   // lazy
-  .exclude({ email__isnull: true })    // lazy
-  .orderBy("-createdAt");              // lazy
+  .filter({ name__startswith: "A" }) // lazy
+  .exclude({ email__isnull: true }) // lazy
+  .orderBy("-createdAt"); // lazy
 
-const authors = await qs;              // executes now -> Author[]
+const authors = await qs; // executes now -> Author[]
 ```
 
 ### 5.2 Field lookups
@@ -276,13 +280,13 @@ class Book extends Model {
 }
 
 const book = await Book.objects.get({ id: 1 });
-const author = await book.author.get();        // forward FK (lazy descriptor)
-const books = await author.books.all();        // reverse manager -> QuerySet
+const author = await book.author.get(); // forward FK (lazy descriptor)
+const books = await author.books.all(); // reverse manager -> QuerySet
 await author.books.filter({ title__icontains: "ring" }); // chainable
-await author.books.create({ title: "New Book" });        // create through relation
+await author.books.create({ title: "New Book" }); // create through relation
 ```
 
-**Deviation note:** In Django, `book.author` is the related object directly (lazy DB hit on attribute access). JS has no transparent lazy attribute I/O, so a forward relation is a *descriptor* you await: `await book.author.get()`, or you preload it with `selectRelated("author")` and then access `book.author_cached`. We provide both:
+**Deviation note:** In Django, `book.author` is the related object directly (lazy DB hit on attribute access). JS has no transparent lazy attribute I/O, so a forward relation is a _descriptor_ you await: `await book.author.get()`, or you preload it with `selectRelated("author")` and then access `book.author_cached`. We provide both:
 
 - `await book.author.get()` — explicit fetch.
 - After `selectRelated("author")`, the related instance is materialized and accessible synchronously as `book.author` (the descriptor detects the preloaded cache).
@@ -298,7 +302,7 @@ await post.tags.add(tag1, tag2);
 await post.tags.remove(tag1);
 await post.tags.set([tag2, tag3]);
 await post.tags.clear();
-await post.tags.all();          // QuerySet
+await post.tags.all(); // QuerySet
 ```
 
 The through-table is auto-generated unless a `through` model is supplied — identical to Django.
@@ -313,9 +317,9 @@ The through-table is auto-generated unless a `through` model is supplied — ide
 
 ```typescript
 const a = new Author({ name: "Jane", email: "j@x.com" });
-await a.save();                 // INSERT, then a.id populated
+await a.save(); // INSERT, then a.id populated
 a.name = "Jane Doe";
-await a.save();                 // UPDATE (dirty-field tracking)
+await a.save(); // UPDATE (dirty-field tracking)
 await a.save({ updateFields: ["name"] });
 await a.delete();
 await a.refreshFromDb();
@@ -373,7 +377,7 @@ import { defineConfig } from "dorm";
 export default defineConfig({
   databases: {
     default: {
-      engine: "postgres",        // postgres | mysql | sqlite
+      engine: "postgres", // postgres | mysql | sqlite
       name: "mydb",
       user: "postgres",
       password: process.env.DB_PASSWORD,
@@ -383,9 +387,9 @@ export default defineConfig({
     },
     replica: { engine: "postgres", name: "mydb", host: "replica.host" },
   },
-  models: ["./models/**/*.{ts,js}"],   // autoload globs for registration
+  models: ["./models/**/*.{ts,js}"], // autoload globs for registration
   migrations: { dir: "./migrations" },
-  apps: ["blog", "accounts"],          // optional logical grouping (Django apps)
+  apps: ["blog", "accounts"], // optional logical grouping (Django apps)
 });
 ```
 
@@ -399,21 +403,21 @@ The `manage.py` analogue is a binary, `dorm`, installed by the package. It auto-
 
 ### 10.1 Command parity
 
-| Django | dorm | Purpose |
-|---|---|---|
-| `makemigrations` | `dorm makemigrations` | diff models vs. migration state → new migration file |
-| `migrate` | `dorm migrate` | apply unapplied migrations |
-| `migrate app 0003` | `dorm migrate <app> <name>` | migrate to a target (forward/back) |
-| `sqlmigrate` | `dorm sqlmigrate <app> <name>` | print SQL for a migration |
-| `showmigrations` | `dorm showmigrations` | list migrations & applied state |
-| `makemigrations --empty` | `dorm makemigrations --empty` | hand-written migration scaffold |
-| `migrate --fake` | `dorm migrate --fake` | mark applied without running |
-| `squashmigrations` | `dorm squashmigrations` | collapse a range |
-| `dbshell` | `dorm dbshell` | open the DB CLI |
-| `shell` | `dorm shell` | REPL with models preloaded |
-| `inspectdb` | `dorm inspectdb` | generate models from existing schema |
-| `flush` | `dorm flush` | empty all tables |
-| `check` | `dorm check` | validate models & config |
+| Django                   | dorm                           | Purpose                                              |
+| ------------------------ | ------------------------------ | ---------------------------------------------------- |
+| `makemigrations`         | `dorm makemigrations`          | diff models vs. migration state → new migration file |
+| `migrate`                | `dorm migrate`                 | apply unapplied migrations                           |
+| `migrate app 0003`       | `dorm migrate <app> <name>`    | migrate to a target (forward/back)                   |
+| `sqlmigrate`             | `dorm sqlmigrate <app> <name>` | print SQL for a migration                            |
+| `showmigrations`         | `dorm showmigrations`          | list migrations & applied state                      |
+| `makemigrations --empty` | `dorm makemigrations --empty`  | hand-written migration scaffold                      |
+| `migrate --fake`         | `dorm migrate --fake`          | mark applied without running                         |
+| `squashmigrations`       | `dorm squashmigrations`        | collapse a range                                     |
+| `dbshell`                | `dorm dbshell`                 | open the DB CLI                                      |
+| `shell`                  | `dorm shell`                   | REPL with models preloaded                           |
+| `inspectdb`              | `dorm inspectdb`               | generate models from existing schema                 |
+| `flush`                  | `dorm flush`                   | empty all tables                                     |
+| `check`                  | `dorm check`                   | validate models & config                             |
 
 ### 10.2 Migration files
 
@@ -427,12 +431,16 @@ export default class extends Migration {
   static dependencies = [];
 
   static operations = [
-    ops.createModel("Author", {
-      id: ops.fields.BigAutoField({ primaryKey: true }),
-      name: ops.fields.CharField({ maxLength: 100 }),
-      email: ops.fields.EmailField({ unique: true }),
-      createdAt: ops.fields.DateTimeField({ autoNowAdd: true }),
-    }, { dbTable: "authors", ordering: ["name"] }),
+    ops.createModel(
+      "Author",
+      {
+        id: ops.fields.BigAutoField({ primaryKey: true }),
+        name: ops.fields.CharField({ maxLength: 100 }),
+        email: ops.fields.EmailField({ unique: true }),
+        createdAt: ops.fields.DateTimeField({ autoNowAdd: true }),
+      },
+      { dbTable: "authors", ordering: ["name"] },
+    ),
 
     ops.createModel("Book", {
       id: ops.fields.BigAutoField({ primaryKey: true }),
@@ -490,7 +498,7 @@ M2M, related managers, `selectRelated`/`prefetchRelated`, the migration engine +
 
 ## 13. Open Questions
 
-1. **Forward relation access** — should we invest in a Proxy-based scheme to make `book.author` awaitable *and* property-like, or keep the explicit `.get()` to avoid magic? (Leaning explicit + `selectRelated` cache.)
+1. **Forward relation access** — should we invest in a Proxy-based scheme to make `book.author` awaitable _and_ property-like, or keep the explicit `.get()` to avoid magic? (Leaning explicit + `selectRelated` cache.)
 2. **Custom managers** — Django subclasses `Manager` and `QuerySet.as_manager()`. Mirror exactly, or offer a lighter composition API?
 3. **Sync facade** — `better-sqlite3` is synchronous; do we expose an optional sync API for SQLite-only use (scripts/tests), or keep everything async for uniformity? (Leaning async-only for parity simplicity.)
 4. **Validation depth** — how much of Django's validators / `clean()` ecosystem ships in core vs. a companion package?
@@ -500,16 +508,16 @@ M2M, related managers, `selectRelated`/`prefetchRelated`, the migration engine +
 
 ## 14. Summary of Intentional Deviations
 
-| Area | Django | dorm | Reason |
-|---|---|---|---|
-| Model registration | Metaclass auto-register | `Model.register()` / `defineModel()` | No metaclasses in JS |
-| Materializing a queryset | Sync (`list(qs)`) | Async (`await qs`) | No blocking I/O |
-| Boolean composition | `&` `|` `~` | `.and()` `.or()` `.not()` | No operator overloading |
-| `F` arithmetic | `+ - * /` | `.add()` `.sub()` `.mul()` `.div()` | No operator overloading |
-| Forward FK access | Attribute lazy-load | `await fk.get()` or `selectRelated` cache | No transparent lazy attr I/O |
-| Relation refs | String `"app.Model"` | Thunk `() => Model` or string | Circular imports |
-| Data migrations | `RunPython` | `runJs(fwd, back)` | Language |
-| Transactions | Decorator + context mgr | Callback + `AsyncLocalStorage` | Async context |
-| Signals | Sync global | Sync **or** async receivers | Async side effects |
+| Area                     | Django                  | dorm                                      | Reason                       |
+| ------------------------ | ----------------------- | ----------------------------------------- | ---------------------------- |
+| Model registration       | Metaclass auto-register | `Model.register()` / `defineModel()`      | No metaclasses in JS         |
+| Materializing a queryset | Sync (`list(qs)`)       | Async (`await qs`)                        | No blocking I/O              |
+| Boolean composition      | `&` `                   | ` `~`                                     | `.and()` `.or()` `.not()`    | No operator overloading |
+| `F` arithmetic           | `+ - * /`               | `.add()` `.sub()` `.mul()` `.div()`       | No operator overloading      |
+| Forward FK access        | Attribute lazy-load     | `await fk.get()` or `selectRelated` cache | No transparent lazy attr I/O |
+| Relation refs            | String `"app.Model"`    | Thunk `() => Model` or string             | Circular imports             |
+| Data migrations          | `RunPython`             | `runJs(fwd, back)`                        | Language                     |
+| Transactions             | Decorator + context mgr | Callback + `AsyncLocalStorage`            | Async context                |
+| Signals                  | Sync global             | Sync **or** async receivers               | Async side effects           |
 
 Everything not in this table is intended to match Django's names and semantics as closely as the language allows.

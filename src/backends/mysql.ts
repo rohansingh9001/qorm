@@ -69,7 +69,9 @@ class MysqlSchemaEditor implements SchemaEditor {
     if (opts.indexes !== false) {
       for (const f of concrete) {
         if (f.dbIndex && !f.unique && !f.primaryKey) {
-          await this.ddl(`CREATE INDEX ${q(`idx_${table}_${f.column}`)} ON ${q(table)} (${q(f.column)})`);
+          await this.ddl(
+            `CREATE INDEX ${q(`idx_${table}_${f.column}`)} ON ${q(table)} (${q(f.column)})`,
+          );
         }
       }
     }
@@ -102,7 +104,9 @@ class MysqlSchemaEditor implements SchemaEditor {
     }
     await this.ddl(`ALTER TABLE ${q(meta.dbTable)} ADD COLUMN ${def}`);
     if (field.dbIndex && !field.unique) {
-      await this.ddl(`CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`);
+      await this.ddl(
+        `CREATE INDEX ${q(`idx_${meta.dbTable}_${field.column}`)} ON ${q(meta.dbTable)} (${q(field.column)})`,
+      );
     }
   }
 
@@ -114,7 +118,9 @@ class MysqlSchemaEditor implements SchemaEditor {
   /** MySQL alters with MODIFY COLUMN carrying the full new definition. */
   async alterColumn(newMeta: ModelMeta, oldField: Field, newField: Field): Promise<void> {
     const q = (s: string) => this.backend.quoteName(s);
-    await this.ddl(`ALTER TABLE ${q(newMeta.dbTable)} MODIFY COLUMN ${this.columnDef(newField, { inAlter: true })}`);
+    await this.ddl(
+      `ALTER TABLE ${q(newMeta.dbTable)} MODIFY COLUMN ${this.columnDef(newField, { inAlter: true })}`,
+    );
     if (!oldField.unique && newField.unique) {
       await this.ddl(
         `CREATE UNIQUE INDEX ${q(`idx_${newMeta.dbTable}_${newField.column}_uniq`)} ON ${q(newMeta.dbTable)} (${q(newField.column)})`,
@@ -148,7 +154,11 @@ class MysqlSchemaEditor implements SchemaEditor {
     );
   }
 
-  async dropManyToMany(_meta: ModelMeta, field: Field, opts: { ifExists?: boolean } = {}): Promise<void> {
+  async dropManyToMany(
+    _meta: ModelMeta,
+    field: Field,
+    opts: { ifExists?: boolean } = {},
+  ): Promise<void> {
     const m2m = field as ManyToManyField;
     const q = (s: string) => this.backend.quoteName(s);
     await this.ddl(`DROP TABLE ${opts.ifExists ? "IF EXISTS " : ""}${q(m2m.throughTable())}`);
@@ -226,7 +236,11 @@ export class MysqlBackend implements Backend {
 
   /* ----- dialect surface --------------------------------------------------- */
 
-  async runInsert(sql: string, params: SqlValue[], _pkColumn: string): Promise<{ insertedPk: unknown; changes: number }> {
+  async runInsert(
+    sql: string,
+    params: SqlValue[],
+    _pkColumn: string,
+  ): Promise<{ insertedPk: unknown; changes: number }> {
     const r = await this.run(sql, params);
     return { insertedPk: Number(r.lastInsertRowid), changes: r.changes };
   }

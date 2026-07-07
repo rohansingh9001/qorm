@@ -25,6 +25,9 @@ export function registerReverseRelation(targetModelName: string, rel: ReverseRel
   byAccessor.set(rel.accessorName, rel);
 }
 
-export function getReverseRelation(targetModelName: string, accessor: string): ReverseRelation | undefined {
+export function getReverseRelation(
+  targetModelName: string,
+  accessor: string,
+): ReverseRelation | undefined {
   return reverseRelations.get(targetModelName)?.get(accessor);
 }

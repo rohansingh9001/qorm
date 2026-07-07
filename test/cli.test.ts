@@ -59,7 +59,9 @@ function tables(): string[] {
   const db = new DatabaseSync(dbPath);
   try {
     const rows = db
-      .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+      )
       .all() as Array<{ name: string }>;
     return rows.map((r) => r.name);
   } finally {
@@ -130,7 +132,10 @@ describe("dorm CLI", () => {
   });
 
   test("migrate --plan and migrate zero / re-apply", () => {
-    assert.match(run(["migrate", "--plan", "zero"]), /Unapply 0002_author_bio[\s\S]*Unapply 0001_initial/);
+    assert.match(
+      run(["migrate", "--plan", "zero"]),
+      /Unapply 0002_author_bio[\s\S]*Unapply 0001_initial/,
+    );
     const out = run(["migrate", "zero"]);
     assert.match(out, /Unapplying 0002_author_bio... OK/);
     assert.match(out, /Unapplying 0001_initial... OK/);
@@ -189,9 +194,13 @@ describe("dorm CLI", () => {
     assert.match(out2, /Applying 0001_squashed_0002_author_bio... OK/);
     assert.doesNotMatch(out2, /Applying 0001_initial/);
     const db = new DatabaseSync(fresh);
-    const names = (db
-      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
-      .all() as Array<{ name: string }>).map((r) => r.name);
+    const names = (
+      db
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+        )
+        .all() as Array<{ name: string }>
+    ).map((r) => r.name);
     db.close();
     assert.deepEqual(names, ["authors", "book", "dorm_migrations"]);
   });

@@ -99,7 +99,8 @@ export class MigrationExecutor {
   async plan(target?: string): Promise<MigrationPlanStep[]> {
     await this.resolve();
     const applied = new Set(await this.appliedInOrder());
-    const targetIndex = target === undefined ? this.migrations.length - 1 : resolveTarget(this.migrations, target);
+    const targetIndex =
+      target === undefined ? this.migrations.length - 1 : resolveTarget(this.migrations, target);
 
     const steps: MigrationPlanStep[] = [];
     // Backward: unapply everything after the target, latest first.
@@ -158,7 +159,11 @@ export class MigrationExecutor {
   }
 
   /** Run one migration's ops forward, tracking intermediate states per op. */
-  private async runOperations(operations: Operation[], before: ProjectState, _after: ProjectState): Promise<void> {
+  private async runOperations(
+    operations: Operation[],
+    before: ProjectState,
+    _after: ProjectState,
+  ): Promise<void> {
     let cursor = before.clone();
     for (const op of operations) {
       const opBefore = cursor.clone();
@@ -168,7 +173,11 @@ export class MigrationExecutor {
   }
 
   /** Execute ops inside a transaction with FK enforcement off (rebuild safety). */
-  private async runOps(operations: Operation[], before: ProjectState, after: ProjectState): Promise<void> {
+  private async runOps(
+    operations: Operation[],
+    before: ProjectState,
+    after: ProjectState,
+  ): Promise<void> {
     const ctx: OpContext = {
       backend: this.backend,
       exec: async (sql: string) => {

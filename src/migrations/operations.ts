@@ -16,12 +16,7 @@
  *     ],
  *   };
  */
-import {
-  Field,
-  fields as fieldFactories,
-  isField,
-  type SerializedField,
-} from "../fields.ts";
+import { Field, fields as fieldFactories, isField, type SerializedField } from "../fields.ts";
 import type { Backend } from "../backends/base.ts";
 import { ProjectState, StateApps, type ModelState } from "./state.ts";
 import { FieldError, NotSupportedError } from "../errors.ts";
@@ -39,7 +34,11 @@ export interface Operation {
   readonly kind: string;
   describe(): string;
   stateForwards(state: ProjectState): void;
-  databaseForwards(ctx: OpContext, stateBefore: ProjectState, stateAfter: ProjectState): Promise<void>;
+  databaseForwards(
+    ctx: OpContext,
+    stateBefore: ProjectState,
+    stateAfter: ProjectState,
+  ): Promise<void>;
   /** The operation that undoes this one, given the state before it ran. */
   inverse(stateBefore: ProjectState): Operation;
   /** Code for the migration writer. Throws for hand-written-only ops (runJs). */
@@ -96,7 +95,11 @@ class CreateModel implements Operation {
   readonly fieldDefs: Array<[string, SerializedField]>;
   readonly options: ModelOptions;
 
-  constructor(name: string, fieldDefs: Record<string, Field | SerializedField>, options: ModelOptions = {}) {
+  constructor(
+    name: string,
+    fieldDefs: Record<string, Field | SerializedField>,
+    options: ModelOptions = {},
+  ) {
     this.name = name;
     this.fieldDefs = Object.entries(fieldDefs).map(([n, d]) => [n, asSerialized(d)]);
     this.options = options;
@@ -107,7 +110,8 @@ class CreateModel implements Operation {
   }
 
   stateForwards(state: ProjectState): void {
-    if (state.models.has(this.name)) throw new FieldError(`createModel: "${this.name}" already exists in state.`);
+    if (state.models.has(this.name))
+      throw new FieldError(`createModel: "${this.name}" already exists in state.`);
     state.models.set(this.name, {
       name: this.name,
       dbTable: this.options.dbTable ?? this.name.toLowerCase(),
@@ -116,7 +120,11 @@ class CreateModel implements Operation {
     });
   }
 
-  async databaseForwards(ctx: OpContext, _before: ProjectState, after: ProjectState): Promise<void> {
+  async databaseForwards(
+    ctx: OpContext,
+    _before: ProjectState,
+    after: ProjectState,
+  ): Promise<void> {
     const apps = new StateApps(after);
     await ctx.backend.schema.createTable(apps.metaFor(this.name));
   }
@@ -279,7 +287,8 @@ class AlterModelOptions implements Operation {
 
 function findField(m: ModelState, fieldName: string): [number, SerializedField] {
   const i = m.fields.findIndex(([n]) => n === fieldName);
-  if (i < 0) throw new FieldError(`Model "${m.name}" has no field "${fieldName}" in migration state.`);
+  if (i < 0)
+    throw new FieldError(`Model "${m.name}" has no field "${fieldName}" in migration state.`);
   return [i, m.fields[i]![1]];
 }
 
@@ -315,7 +324,11 @@ class AddField implements Operation {
     m.fields.push([this.fieldName, structuredClone(this.def)]);
   }
 
-  async databaseForwards(ctx: OpContext, _before: ProjectState, after: ProjectState): Promise<void> {
+  async databaseForwards(
+    ctx: OpContext,
+    _before: ProjectState,
+    after: ProjectState,
+  ): Promise<void> {
     const apps = new StateApps(after);
     const meta = apps.metaFor(this.model);
     const field = meta.fields.get(this.fieldName)!;
@@ -388,7 +401,9 @@ class AlterField implements Operation {
     const m = state.getModel(this.model);
     const [i] = findField(m, this.fieldName);
     if (this.def.type === "ManyToManyField" || m.fields[i]![1].type === "ManyToManyField") {
-      throw new NotSupportedError(`alterField cannot change ManyToManyField ${this.model}.${this.fieldName}.`);
+      throw new NotSupportedError(
+        `alterField cannot change ManyToManyField ${this.model}.${this.fieldName}.`,
+      );
     }
     m.fields[i] = [this.fieldName, structuredClone(this.def)];
   }
@@ -466,7 +481,8 @@ class RunSql implements Operation {
 
   constructor(sql: string | string[], reverseSql?: string | string[]) {
     this.forward = Array.isArray(sql) ? sql : [sql];
-    this.backward = reverseSql === undefined ? null : Array.isArray(reverseSql) ? reverseSql : [reverseSql];
+    this.backward =
+      reverseSql === undefined ? null : Array.isArray(reverseSql) ? reverseSql : [reverseSql];
   }
 
   describe(): string {
@@ -483,7 +499,9 @@ class RunSql implements Operation {
 
   inverse(): Operation {
     if (this.backward === null) {
-      throw new IrreversibleError("This runSql operation has no reverse SQL and cannot be unapplied.");
+      throw new IrreversibleError(
+        "This runSql operation has no reverse SQL and cannot be unapplied.",
+      );
     }
     return new RunSql(this.backward, this.forward);
   }
@@ -529,13 +547,17 @@ class RunJs implements Operation {
 
   inverse(): Operation {
     if (!this.backward) {
-      throw new IrreversibleError("This runJs operation has no backward function and cannot be unapplied.");
+      throw new IrreversibleError(
+        "This runJs operation has no backward function and cannot be unapplied.",
+      );
     }
     return new RunJs(this.backward, this.forward);
   }
 
   toCode(): string {
-    throw new NotSupportedError("runJs operations are hand-written; the autodetector never generates them.");
+    throw new NotSupportedError(
+      "runJs operations are hand-written; the autodetector never generates them.",
+    );
   }
 }
 
@@ -544,17 +566,23 @@ class RunJs implements Operation {
  * ------------------------------------------------------------------------- */
 
 export const ops = {
-  createModel: (name: string, fieldDefs: Record<string, Field | SerializedField>, options?: ModelOptions) =>
-    new CreateModel(name, fieldDefs, options),
+  createModel: (
+    name: string,
+    fieldDefs: Record<string, Field | SerializedField>,
+    options?: ModelOptions,
+  ) => new CreateModel(name, fieldDefs, options),
   deleteModel: (name: string) => new DeleteModel(name),
   renameModel: (oldName: string, newName: string) => new RenameModel(oldName, newName),
   alterModelTable: (name: string, dbTable: string) => new AlterModelTable(name, dbTable),
-  alterModelOptions: (name: string, options: { ordering?: string[] }) => new AlterModelOptions(name, options),
-  addField: (model: string, fieldName: string, def: Field | SerializedField) => new AddField(model, fieldName, def),
+  alterModelOptions: (name: string, options: { ordering?: string[] }) =>
+    new AlterModelOptions(name, options),
+  addField: (model: string, fieldName: string, def: Field | SerializedField) =>
+    new AddField(model, fieldName, def),
   removeField: (model: string, fieldName: string) => new RemoveField(model, fieldName),
   alterField: (model: string, fieldName: string, def: Field | SerializedField) =>
     new AlterField(model, fieldName, def),
-  renameField: (model: string, oldName: string, newName: string) => new RenameField(model, oldName, newName),
+  renameField: (model: string, oldName: string, newName: string) =>
+    new RenameField(model, oldName, newName),
   runSql: (sql: string | string[], reverseSql?: string | string[]) => new RunSql(sql, reverseSql),
   runJs: (forward: RunJsFn, backward?: RunJsFn) => new RunJs(forward, backward),
   /** Field factories for migration files (`ops.fields.CharField({ ... })`). */

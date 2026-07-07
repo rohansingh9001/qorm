@@ -36,7 +36,14 @@ export {
   Rank,
   DenseRank,
 } from "./expressions.ts";
-export type { QExpr, FExpression, AggregateExpr, FuncExpr, WindowExpr, AnnotationExpr } from "./expressions.ts";
+export type {
+  QExpr,
+  FExpression,
+  AggregateExpr,
+  FuncExpr,
+  WindowExpr,
+  AnnotationExpr,
+} from "./expressions.ts";
 
 // Transactions & signals
 export { transaction, atomic } from "./transaction.ts";
@@ -48,13 +55,25 @@ export { ops } from "./migrations/operations.ts";
 export type { Operation, Ops } from "./migrations/operations.ts";
 export { ProjectState, StateApps } from "./migrations/state.ts";
 export { autodetectChanges } from "./migrations/autodetector.ts";
-export { writeMigration, writeSquashedMigration, renderMigration, listMigrationFiles } from "./migrations/writer.ts";
+export {
+  writeMigration,
+  writeSquashedMigration,
+  renderMigration,
+  listMigrationFiles,
+} from "./migrations/writer.ts";
 export { loadMigrations, finalState, buildStates, resolveSquashes } from "./migrations/loader.ts";
 export { MigrationExecutor } from "./migrations/executor.ts";
 export { MigrationRecorder } from "./migrations/recorder.ts";
 
 // Configuration & connections
-export { defineConfig, connect, configure, createBackend, getConnection, closeAll } from "./connection.ts";
+export {
+  defineConfig,
+  connect,
+  configure,
+  createBackend,
+  getConnection,
+  closeAll,
+} from "./connection.ts";
 export type { DormConfig, DatabaseConfig, Engine } from "./connection.ts";
 
 // Backends (for advanced use / custom wiring)

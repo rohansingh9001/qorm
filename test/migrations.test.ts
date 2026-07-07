@@ -66,7 +66,10 @@ async function columnNames(table: string): Promise<string[]> {
 
 describe("autodetector + writer + executor", () => {
   test("initial makemigrations detects createModel in dependency order", async () => {
-    const changes = await autodetectChanges(new ProjectState(), ProjectState.fromModels(allModels()));
+    const changes = await autodetectChanges(
+      new ProjectState(),
+      ProjectState.fromModels(allModels()),
+    );
     assert.deepEqual(
       changes.map((op) => op.kind),
       ["createModel", "createModel"],
@@ -107,14 +110,20 @@ describe("autodetector + writer + executor", () => {
 
   test("addField is detected, applied, and reversible; data survives", async () => {
     const backend = getConnection();
-    await backend.run(`INSERT INTO "authors" ("name", "email") VALUES (?, ?)`, ["Jane", "jane@x.com"]);
+    await backend.run(`INSERT INTO "authors" ("name", "email") VALUES (?, ?)`, [
+      "Jane",
+      "jane@x.com",
+    ]);
 
     // Simulate adding Author.age to the models by mutating a copy of the state.
     const to = ProjectState.fromModels(allModels());
     to.getModel("Author").fields.push(["age", { type: "IntegerField", options: { null: true } }]);
 
     const changes = await autodetectChanges(finalState(await loadMigrations(dir)), to);
-    assert.deepEqual(changes.map((op) => op.kind), ["addField"]);
+    assert.deepEqual(
+      changes.map((op) => op.kind),
+      ["addField"],
+    );
     writeMigration(dir, changes, { name: "author_age" });
 
     const executor = new MigrationExecutor(backend, await loadMigrations(dir));
@@ -140,12 +149,17 @@ describe("autodetector + writer + executor", () => {
     fieldsArr[nameIdx] = ["name", { type: "CharField", options: { maxLength: 255 } }];
 
     const changes = await autodetectChanges(from, to);
-    assert.deepEqual(changes.map((op) => op.kind), ["alterField"]);
+    assert.deepEqual(
+      changes.map((op) => op.kind),
+      ["alterField"],
+    );
     writeMigration(dir, changes, { name: "widen_name" });
 
     const executor = new MigrationExecutor(backend, await loadMigrations(dir));
     await executor.migrate();
-    const rows = (await backend.execute(`SELECT name, email FROM "authors"`)).map((r) => ({ ...r }));
+    const rows = (await backend.execute(`SELECT name, email FROM "authors"`)).map((r) => ({
+      ...r,
+    }));
     assert.deepEqual(rows, [{ name: "Jane", email: "jane@x.com" }]);
   });
 
@@ -161,7 +175,10 @@ describe("autodetector + writer + executor", () => {
       assert.match(q, /rename Author\.age to Author\.years/);
       return true;
     });
-    assert.deepEqual(changes.map((op) => op.kind), ["renameField"]);
+    assert.deepEqual(
+      changes.map((op) => op.kind),
+      ["renameField"],
+    );
     writeMigration(dir, changes, { name: "rename_age" });
 
     const executor = new MigrationExecutor(backend, await loadMigrations(dir));
@@ -185,7 +202,10 @@ describe("autodetector + writer + executor", () => {
     const backend = getConnection();
     const from = finalState(await loadMigrations(dir));
     const to = from.clone();
-    to.getModel("Book").fields.push(["isbn", { type: "CharField", options: { maxLength: 13, null: true } }]);
+    to.getModel("Book").fields.push([
+      "isbn",
+      { type: "CharField", options: { maxLength: 13, null: true } },
+    ]);
     writeMigration(dir, await autodetectChanges(from, to), { name: "fake_isbn" });
 
     const executor = new MigrationExecutor(backend, await loadMigrations(dir));

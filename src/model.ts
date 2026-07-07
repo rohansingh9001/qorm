@@ -116,9 +116,7 @@ class ForwardRelation {
   /** The related instance if already loaded (e.g. via selectRelated), else undefined. */
   get cached(): ModelInstance | null | undefined {
     return (this.instance as Record<string, unknown>)[`__rel_${this.field.name}`] as
-      | ModelInstance
-      | null
-      | undefined;
+      ModelInstance | null | undefined;
   }
 }
 
@@ -180,7 +178,12 @@ function resolveRelations(): void {
       }
 
       if (f instanceof ForeignKey) {
-        registerReverseRelation(target.modelName, { kind: "fk", sourceModel: model, field: f, accessorName: accessor });
+        registerReverseRelation(target.modelName, {
+          kind: "fk",
+          sourceModel: model,
+          field: f,
+          accessorName: accessor,
+        });
         Object.defineProperty(target.prototype, accessor, {
           configurable: true,
           enumerable: false,
@@ -190,7 +193,12 @@ function resolveRelations(): void {
         });
       } else {
         const m2m = f;
-        registerReverseRelation(target.modelName, { kind: "m2m", sourceModel: model, field: m2m, accessorName: accessor });
+        registerReverseRelation(target.modelName, {
+          kind: "m2m",
+          sourceModel: model,
+          field: m2m,
+          accessorName: accessor,
+        });
         Object.defineProperty(target.prototype, accessor, {
           configurable: true,
           enumerable: false,
@@ -198,7 +206,12 @@ function resolveRelations(): void {
             // Reverse side: match on the target column, yield rows from the owner column.
             return new ManyRelatedManager(
               model,
-              { table: m2m.throughTable(), ownerCol: m2m.targetColumn(), targetCol: m2m.ownerColumn(), field: m2m },
+              {
+                table: m2m.throughTable(),
+                ownerCol: m2m.targetColumn(),
+                targetCol: m2m.ownerColumn(),
+                field: m2m,
+              },
               this,
               accessor,
             );
@@ -260,7 +273,12 @@ function defineM2MRelation(proto: object, field: ManyToManyField): void {
     get(this: ModelInstance) {
       return new ManyRelatedManager(
         field.getRelatedModel(),
-        { table: field.throughTable(), ownerCol: field.ownerColumn(), targetCol: field.targetColumn(), field },
+        {
+          table: field.throughTable(),
+          ownerCol: field.ownerColumn(),
+          targetCol: field.targetColumn(),
+          field,
+        },
         this,
         field.name,
       );
@@ -300,14 +318,18 @@ function attachRelated(
     const seg = path[i]!;
     const fk = parentMeta.fields.get(seg) as ForeignKey;
     parentInst = parentInst
-      ? ((parentInst as Record<string, unknown>)[`__rel_${seg}`] as ModelInstance | null) ?? null
+      ? (((parentInst as Record<string, unknown>)[`__rel_${seg}`] as ModelInstance | null) ?? null)
       : null;
     parentMeta = fk.getRelatedModel().meta;
     if (!parentInst) return; // an intermediate relation was null; nothing deeper to attach
   }
   const leaf = path[path.length - 1]!;
   const fk = parentMeta.fields.get(leaf) as ForeignKey;
-  (parentInst as Record<string, unknown>)[`__rel_${leaf}`] = hydratePlain(fk.getRelatedModel(), row, path);
+  (parentInst as Record<string, unknown>)[`__rel_${leaf}`] = hydratePlain(
+    fk.getRelatedModel(),
+    row,
+    path,
+  );
 }
 
 /* ----------------------------------------------------------------------------
@@ -393,7 +415,11 @@ export class Model {
     const state = STATE.get(this) ?? { isNew: true, original: {} };
     const instance = this as unknown as ModelInstance;
 
-    await signals.preSave.send(ctor, { instance, created: state.isNew, updateFields: opts.updateFields });
+    await signals.preSave.send(ctor, {
+      instance,
+      created: state.isNew,
+      updateFields: opts.updateFields,
+    });
 
     if (state.isNew) {
       const cols: string[] = [];
@@ -453,7 +479,9 @@ export class Model {
     const meta = ctor.meta;
     const backend = ctor._backend();
     if (this.pk === undefined || this.pk === null) {
-      throw new FieldError(`Cannot delete a ${meta.modelName} that has no primary key (not saved).`);
+      throw new FieldError(
+        `Cannot delete a ${meta.modelName} that has no primary key (not saved).`,
+      );
     }
     const instance = this as unknown as ModelInstance;
     await signals.preDelete.send(ctor, { instance });
@@ -493,14 +521,22 @@ export class Model {
   }
 
   /** Hydrate the root instance plus any selectRelated nested instances from a joined row. */
-  static _hydrateRelated(ctor: ModelClass, row: Record<string, unknown>, paths: string[][]): ModelInstance {
+  static _hydrateRelated(
+    ctor: ModelClass,
+    row: Record<string, unknown>,
+    paths: string[][],
+  ): ModelInstance {
     const root = hydratePlain(ctor, row, [])!;
     for (const path of expandRelationPaths(paths)) attachRelated(root, ctor, path, row);
     return root;
   }
 
   /** Batch-load reverse / M2M relations onto already-fetched instances (prefetch; design 6.3). */
-  static async _prefetchInto(ctor: ModelClass, instances: ModelInstance[], names: string[]): Promise<void> {
+  static async _prefetchInto(
+    ctor: ModelClass,
+    instances: ModelInstance[],
+    names: string[],
+  ): Promise<void> {
     const pks = instances.map((i) => i.pk).filter((v) => v !== null && v !== undefined);
     for (const name of names) {
       // Forward M2M field (`post.tags`)?
@@ -531,7 +567,9 @@ export class Model {
         continue;
       }
       const children =
-        pks.length > 0 ? await rel.sourceModel.objects.filter({ [`${rel.field.attname}__in`]: pks }) : [];
+        pks.length > 0
+          ? await rel.sourceModel.objects.filter({ [`${rel.field.attname}__in`]: pks })
+          : [];
 
       const groups = new Map<unknown, ModelInstance[]>();
       for (const child of children) {
@@ -561,9 +599,12 @@ export class Model {
     const staticMeta = (ctor.meta as Meta | undefined) ?? {};
     const looksInternal = staticMeta && typeof staticMeta === "object" && "fields" in staticMeta;
     const metaSource: Meta = looksInternal ? {} : staticMeta;
-    const name = opts.name ?? (ctor as { modelName?: string }).modelName ?? (this as { name?: string }).name;
+    const name =
+      opts.name ?? (ctor as { modelName?: string }).modelName ?? (this as { name?: string }).name;
     if (typeof name !== "string" || name.length === 0) {
-      throw new FieldError("register() could not infer a model name; pass register({ name: \"...\" }).");
+      throw new FieldError(
+        'register() could not infer a model name; pass register({ name: "..." }).',
+      );
     }
     buildModel(ctor as unknown as ModelClass, name, fieldDefs, { ...metaSource, ...opts });
   }
@@ -661,32 +702,31 @@ function buildModel(
 // Maps a field descriptor to the JS type of its instance value (design 11).
 // Order matters: subclasses (EmailField<:CharField, BigAutoField<:AutoField) must
 // be matched by their base where they share a value type.
-type FieldValue<F extends Field> =
-  F extends BooleanField
-    ? boolean
-    : F extends DateTimeField
-      ? Date
-      : F extends DateField
+type FieldValue<F extends Field> = F extends BooleanField
+  ? boolean
+  : F extends DateTimeField
+    ? Date
+    : F extends DateField
+      ? string
+      : F extends DecimalField
         ? string
-        : F extends DecimalField
+        : F extends CharField
           ? string
-          : F extends CharField
+          : F extends TextField
             ? string
-            : F extends TextField
+            : F extends UUIDField
               ? string
-              : F extends UUIDField
-                ? string
-                : F extends FloatField
+              : F extends FloatField
+                ? number
+                : F extends BigIntegerField
                   ? number
-                  : F extends BigIntegerField
+                  : F extends IntegerField
                     ? number
-                    : F extends IntegerField
+                    : F extends AutoField
                       ? number
-                      : F extends AutoField
-                        ? number
-                        : F extends JSONField
-                          ? unknown
-                          : unknown;
+                      : F extends JSONField
+                        ? unknown
+                        : unknown;
 
 /** Awaitable forward-relation descriptor (`await book.author.get()`; design 6.1). */
 export interface ForwardRelationAccessor<R = ModelInstance> {

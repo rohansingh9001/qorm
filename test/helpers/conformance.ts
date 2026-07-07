@@ -60,7 +60,11 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
       bio: fields.TextField({ null: true }),
       rating: fields.FloatField({ default: 0 }),
       createdAt: fields.DateTimeField({ autoNowAdd: true }),
-      publisher: fields.ForeignKey(() => Publisher, { onDelete: "SET_NULL", relatedName: "authors", null: true }),
+      publisher: fields.ForeignKey(() => Publisher, {
+        onDelete: "SET_NULL",
+        relatedName: "authors",
+        null: true,
+      }),
     },
     { ordering: ["name"] },
   );
@@ -99,7 +103,12 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
 
     test("create populates pk, defaults, autoNowAdd; get round-trips values", async () => {
       const pub = await Publisher.objects.create({ name: "Penguin" });
-      const a = await Author.objects.create({ name: "Jane", email: "jane@x.com", age: 30, publisher: pub });
+      const a = await Author.objects.create({
+        name: "Jane",
+        email: "jane@x.com",
+        age: 30,
+        publisher: pub,
+      });
       assert.ok(typeof a.pk === "number" && a.pk > 0);
       assert.equal(a.active, true);
       assert.ok(a.createdAt instanceof Date);
@@ -144,9 +153,15 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
 
       assert.equal((await Author.objects.filter({ name__icontains: "ALF" })).length, 1);
       assert.equal((await Author.objects.filter({ name__in: ["Jane", "Zoe"] })).length, 2);
-      assert.equal((await Author.objects.filter({ age__isnull: true })).map((a) => a.name).join(), "Zoe");
+      assert.equal(
+        (await Author.objects.filter({ age__isnull: true })).map((a) => a.name).join(),
+        "Zoe",
+      );
       assert.equal((await Author.objects.filter({ age__range: [25, 40] })).length, 1);
-      assert.equal((await Author.objects.filter(Q({ name: "Jane" }).or(Q({ name: "Zoe" })))).length, 2);
+      assert.equal(
+        (await Author.objects.filter(Q({ name: "Jane" }).or(Q({ name: "Zoe" })))).length,
+        2,
+      );
     });
 
     test("case-sensitive vs insensitive contains (dialect LIKE)", async () => {
@@ -200,12 +215,18 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
     });
 
     test("aggregate, annotate Count, F updates, DB functions, windows", async () => {
-      const agg = await Book.objects.aggregate({ n: Count(), avgPrice: Avg("price"), total: Sum("price") });
+      const agg = await Book.objects.aggregate({
+        n: Count(),
+        avgPrice: Avg("price"),
+        total: Sum("price"),
+      });
       assert.equal(Number(agg.n), 2);
       assert.ok(Math.abs(Number(agg.avgPrice) - 10.75) < 0.001);
       assert.ok(Math.abs(Number(agg.total) - 21.5) < 0.001);
 
-      const authors = await Author.objects.annotate({ numBooks: Count("books") }).orderBy("-numBooks");
+      const authors = await Author.objects
+        .annotate({ numBooks: Count("books") })
+        .orderBy("-numBooks");
       assert.equal(Number(anyOf(authors[0]).numBooks), 2);
       assert.equal(authors[0]!.name, "Jane");
 
@@ -259,7 +280,10 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
       assert.ok((await a.union(b).count()) >= 2);
       assert.equal((await a.intersection(b)).length, 1);
 
-      const onlyName = (await Author.objects.only("name").get({ name: "Jane" })) as Record<string, unknown>;
+      const onlyName = (await Author.objects.only("name").get({ name: "Jane" })) as Record<
+        string,
+        unknown
+      >;
       assert.equal(onlyName.email, undefined);
 
       const page = await Author.objects.orderBy("name").slice(1, 3);
@@ -303,12 +327,17 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
         writeMigration(dir, await autodetectChanges(from0, to1), { name: "initial" });
 
         const to2 = to1.clone();
-        to2.getModel("Gadget").fields.push(["weight", { type: "IntegerField", options: { default: 5 } }]);
+        to2
+          .getModel("Gadget")
+          .fields.push(["weight", { type: "IntegerField", options: { default: 5 } }]);
         writeMigration(dir, await autodetectChanges(to1, to2), { name: "weight" });
 
         const to3 = to2.clone();
         const gf = to3.getModel("Gadget").fields;
-        gf[gf.findIndex(([n]) => n === "name")] = ["name", { type: "CharField", options: { maxLength: 150 } }];
+        gf[gf.findIndex(([n]) => n === "name")] = [
+          "name",
+          { type: "CharField", options: { maxLength: 150 } },
+        ];
         writeMigration(dir, await autodetectChanges(to2, to3), { name: "widen" });
 
         const executor = new MigrationExecutor(backend, await loadMigrations(dir));
@@ -316,8 +345,13 @@ export function runConformanceSuite(engineName: string, config: DatabaseConfig):
         assert.equal(applied.applied.length, 3);
 
         // The migrated table really works: insert + default backfill present.
-        await backend.run(`INSERT INTO ${backend.quoteName("gadget")} (${backend.quoteName("name")}, ${backend.quoteName("weight")}) VALUES (?, ?)`, ["probe", 7]);
-        const rows = await backend.execute(`SELECT ${backend.quoteName("weight")} AS w FROM ${backend.quoteName("gadget")}`);
+        await backend.run(
+          `INSERT INTO ${backend.quoteName("gadget")} (${backend.quoteName("name")}, ${backend.quoteName("weight")}) VALUES (?, ?)`,
+          ["probe", 7],
+        );
+        const rows = await backend.execute(
+          `SELECT ${backend.quoteName("weight")} AS w FROM ${backend.quoteName("gadget")}`,
+        );
         assert.equal(Number(rows[0]!.w), 7);
 
         // Unapply everything; the table is gone.

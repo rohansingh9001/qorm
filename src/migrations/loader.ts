@@ -38,11 +38,21 @@ export async function loadMigrations(dir: string): Promise<LoadedMigration[]> {
     if (!def || typeof def !== "object" || !("operations" in def)) {
       throw new DormError(`Migration ${file} must default-export { dependencies, operations }.`);
     }
-    const operations = typeof def.operations === "function" ? def.operations(opsNamespace) : def.operations;
+    const operations =
+      typeof def.operations === "function" ? def.operations(opsNamespace) : def.operations;
     if (!Array.isArray(operations)) {
-      throw new DormError(`Migration ${name}: operations must be (ops) => Operation[] or an array.`);
+      throw new DormError(
+        `Migration ${name}: operations must be (ops) => Operation[] or an array.`,
+      );
     }
-    out.push({ name, number, file, dependencies: def.dependencies ?? [], operations, replaces: def.replaces ?? [] });
+    out.push({
+      name,
+      number,
+      file,
+      dependencies: def.dependencies ?? [],
+      operations,
+      replaces: def.replaces ?? [],
+    });
   }
   return out;
 }

@@ -15,7 +15,11 @@ const Publisher = defineModel("Publisher", {
 
 const Author = defineModel("Author", {
   name: fields.CharField({ maxLength: 100 }),
-  publisher: fields.ForeignKey(() => Publisher, { onDelete: "SET_NULL", relatedName: "authors", null: true }),
+  publisher: fields.ForeignKey(() => Publisher, {
+    onDelete: "SET_NULL",
+    relatedName: "authors",
+    null: true,
+  }),
 });
 
 const Book = defineModel("Book", {
@@ -49,16 +53,24 @@ after(async () => {
 describe("relation spanning (JOINs)", () => {
   test("single-level: filter across a FK", async () => {
     const books = await Book.objects.filter({ author__name: "Tolkien" }).orderBy("title");
-    assert.deepEqual(books.map((b) => b.title), ["The Hobbit", "The Lord of the Rings"]);
+    assert.deepEqual(
+      books.map((b) => b.title),
+      ["The Hobbit", "The Lord of the Rings"],
+    );
   });
 
   test("single-level with a lookup suffix", async () => {
     const books = await Book.objects.filter({ author__name__startswith: "Orw" });
-    assert.deepEqual(books.map((b) => b.title), ["1984"]);
+    assert.deepEqual(
+      books.map((b) => b.title),
+      ["1984"],
+    );
   });
 
   test("multi-level: Book -> Author -> Publisher", async () => {
-    const books = await Book.objects.filter({ author__publisher__name: "Allen & Unwin" }).orderBy("title");
+    const books = await Book.objects
+      .filter({ author__publisher__name: "Allen & Unwin" })
+      .orderBy("title");
     assert.equal(books.length, 2);
     assert.ok(books.every((b) => b.title.includes("The")));
   });
@@ -75,7 +87,9 @@ describe("relation spanning (JOINs)", () => {
   });
 
   test("bulk update through a spanned filter (PK subquery)", async () => {
-    const n = await Book.objects.filter({ author__name: "Orwell" }).update({ title: "Nineteen Eighty-Four" });
+    const n = await Book.objects
+      .filter({ author__name: "Orwell" })
+      .update({ title: "Nineteen Eighty-Four" });
     assert.equal(n, 1);
     assert.equal(await Book.objects.filter({ title: "Nineteen Eighty-Four" }).count(), 1);
     // restore
@@ -83,7 +97,10 @@ describe("relation spanning (JOINs)", () => {
   });
 
   test("spanning a non-relation throws a clear error", async () => {
-    await assert.rejects(() => Book.objects.filter({ title__author: "x" }).toArray(), /Cannot span/);
+    await assert.rejects(
+      () => Book.objects.filter({ title__author: "x" }).toArray(),
+      /Cannot span/,
+    );
   });
 });
 
@@ -116,7 +133,10 @@ describe("reverse related managers", () => {
   test("author.books.all() / filter() / create()", async () => {
     const tolkien = await Author.objects.get({ name: "Tolkien" });
     const books = await anyOf(tolkien).books.all().orderBy("title");
-    assert.deepEqual(books.map((b: any) => b.title), ["The Hobbit", "The Lord of the Rings"]);
+    assert.deepEqual(
+      books.map((b: any) => b.title),
+      ["The Hobbit", "The Lord of the Rings"],
+    );
 
     const filtered = await anyOf(tolkien).books.filter({ title__icontains: "hobbit" });
     assert.equal(filtered.length, 1);
@@ -168,7 +188,10 @@ describe("prefetchRelated", () => {
 
 describe("updateOrCreate / bulkCreate", () => {
   test("updateOrCreate creates then updates", async () => {
-    const [p1, created1] = await Publisher.objects.updateOrCreate({ name: "UoC" }, { defaults: { name: "UoC" } });
+    const [p1, created1] = await Publisher.objects.updateOrCreate(
+      { name: "UoC" },
+      { defaults: { name: "UoC" } },
+    );
     assert.equal(created1, true);
     const [p2, created2] = await Publisher.objects.updateOrCreate({ name: "UoC" });
     assert.equal(created2, false);

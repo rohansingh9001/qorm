@@ -21,7 +21,9 @@ export interface QExpr {
 }
 
 export function isQ(value: unknown): value is QExpr {
-  return typeof value === "object" && value !== null && (value as { __isQ?: unknown }).__isQ === true;
+  return (
+    typeof value === "object" && value !== null && (value as { __isQ?: unknown }).__isQ === true
+  );
 }
 
 /** Coerce a Q or a plain filter object to a condition node. */
@@ -73,7 +75,9 @@ export interface FExpression {
 }
 
 export function isF(value: unknown): value is FExpression {
-  return typeof value === "object" && value !== null && (value as { __isF?: unknown }).__isF === true;
+  return (
+    typeof value === "object" && value !== null && (value as { __isF?: unknown }).__isF === true
+  );
 }
 
 function operandAst(other: FExpression | number): FAst {
@@ -81,8 +85,10 @@ function operandAst(other: FExpression | number): FAst {
 }
 
 function makeF(ast: FAst): FExpression {
-  const bin = (op: "+" | "-" | "*" | "/") => (other: FExpression | number): FExpression =>
-    makeF({ t: "bin", op, l: ast, r: operandAst(other) });
+  const bin =
+    (op: "+" | "-" | "*" | "/") =>
+    (other: FExpression | number): FExpression =>
+      makeF({ t: "bin", op, l: ast, r: operandAst(other) });
   return { __isF: true, ast, add: bin("+"), sub: bin("-"), mul: bin("*"), div: bin("/") };
 }
 
@@ -109,7 +115,9 @@ export interface AggregateExpr {
 }
 
 export function isAggregate(value: unknown): value is AggregateExpr {
-  return typeof value === "object" && value !== null && (value as { __isAgg?: unknown }).__isAgg === true;
+  return (
+    typeof value === "object" && value !== null && (value as { __isAgg?: unknown }).__isAgg === true
+  );
 }
 
 function agg(fn: AggFn, source: string, distinct = false): AggregateExpr {
@@ -171,7 +179,9 @@ export function isFunc(v: unknown): v is FuncExpr {
 }
 
 function func(kind: string, args: FuncArg[], castType?: string): FuncExpr {
-  return castType === undefined ? { __isFunc: true, kind, args } : { __isFunc: true, kind, args, castType };
+  return castType === undefined
+    ? { __isFunc: true, kind, args }
+    : { __isFunc: true, kind, args, castType };
 }
 
 export function Lower(arg: FuncArg): FuncExpr {
@@ -228,7 +238,12 @@ export function Window(
   expr: AggregateExpr | FuncExpr,
   opts: { partitionBy?: string[]; orderBy?: string[] } = {},
 ): WindowExpr {
-  return { __isWindow: true, expr, partitionBy: opts.partitionBy ?? [], orderBy: opts.orderBy ?? [] };
+  return {
+    __isWindow: true,
+    expr,
+    partitionBy: opts.partitionBy ?? [],
+    orderBy: opts.orderBy ?? [],
+  };
 }
 
 /** Pure window functions (no argument). */

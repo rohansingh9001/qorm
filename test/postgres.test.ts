@@ -35,5 +35,9 @@ async function available(): Promise<boolean> {
 if (await available()) {
   runConformanceSuite("postgres", config);
 } else {
-  test("postgres conformance (server not reachable — start the docker container)", { skip: true }, () => {});
+  test(
+    "postgres conformance (server not reachable — start the docker container)",
+    { skip: true },
+    () => {},
+  );
 }

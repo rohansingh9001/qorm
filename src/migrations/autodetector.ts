@@ -60,7 +60,8 @@ export async function autodetectChanges(
       const sameFields =
         oldModel.fields.length === newModel.fields.length &&
         oldModel.fields.every(
-          ([n, def], i) => newModel.fields[i]![0] === n && sameFieldDef(def, newModel.fields[i]![1]),
+          ([n, def], i) =>
+            newModel.fields[i]![0] === n && sameFieldDef(def, newModel.fields[i]![1]),
         );
       if (sameFields && (await ask(`Did you rename model ${oldName} to ${newName}?`))) {
         operations.push(ops.renameModel(oldName, newName));
@@ -75,7 +76,10 @@ export async function autodetectChanges(
   for (const name of topoSortNewModels(added, to)) {
     const m = to.getModel(name);
     operations.push(
-      ops.createModel(name, Object.fromEntries(m.fields), { dbTable: m.dbTable, ordering: m.ordering }),
+      ops.createModel(name, Object.fromEntries(m.fields), {
+        dbTable: m.dbTable,
+        ordering: m.ordering,
+      }),
     );
   }
 
